@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Node / Electron
+node_modules/
+dist/
+out/
+*.log
+
+# Builds
+server/build/
+server/dist/
+desktop/dist-installer/
+
+# Mulacord runtime data
+server/data/
+*.sqlite3
+*.db
+.secret_key
+
+# Editores / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

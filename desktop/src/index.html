@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; connect-src *; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; style-src 'self' 'unsafe-inline';" />
+  <title>Mulla Cord</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="bg-fx" id="bg-fx">
+    <span class="blob a"></span>
+    <span class="blob b"></span>
+    <span class="blob c"></span>
+  </div>
+
+  <div id="splash">
+    <div class="splash-fx"><span class="s1"></span><span class="s2"></span><span class="s3"></span></div>
+    <svg class="brand-wave" viewBox="0 0 1200 200" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M-20 100 C 180 20, 320 180, 520 100 S 880 20, 1080 100 1240 80 1240 80"
+            fill="none" stroke="url(#wg)" stroke-width="2.5" />
+      <path d="M-20 130 C 200 60, 340 200, 560 120 S 900 60, 1120 130"
+            fill="none" stroke="url(#wg)" stroke-width="1.5" opacity="0.5" />
+      <g class="wave-nodes" fill="var(--accent)">
+        <circle cx="180" cy="60" r="4"/><circle cx="520" cy="100" r="4"/>
+        <circle cx="700" cy="55" r="3"/><circle cx="1080" cy="100" r="4"/>
+      </g>
+      <defs>
+        <linearGradient id="wg" x1="0" x2="1">
+          <stop offset="0" stop-color="var(--accent)" stop-opacity="0"/>
+          <stop offset="0.5" stop-color="var(--accent)"/>
+          <stop offset="1" stop-color="var(--accent-light)" stop-opacity="0.2"/>
+        </linearGradient>
+      </defs>
+    </svg>
+    <div class="splash-inner">
+      <svg class="splash-logo" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="9" fill="#FACC15"/>
+        <path d="M11.5 9 15 13.5M20.5 9 17 13.5" stroke="#09090B" stroke-width="2.4" stroke-linecap="round"/>
+        <ellipse cx="16" cy="18.5" rx="7" ry="6.2" fill="#09090B"/>
+        <circle cx="13.7" cy="18" r="1.5" fill="#FACC15"/>
+        <circle cx="18.3" cy="18" r="1.5" fill="#FACC15"/>
+      </svg>
+      <div class="splash-name">Mulla Cord</div>
+      <div class="splash-bar"></div>
+      <div class="splash-tag">Your community, in tune</div>
+      <div class="brand-pills">
+        <span>Chat</span><span>Voice</span><span>Community</span><span>Live</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="root">
+    <!-- Barra de título personalizada -->
+    <header class="titlebar">
+      <span class="tb-brand">
+        <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+          <rect width="32" height="32" rx="9" fill="#FACC15"/>
+          <path d="M11.5 9 15 13.5M20.5 9 17 13.5" stroke="#09090B" stroke-width="2.4" stroke-linecap="round"/>
+          <ellipse cx="16" cy="18.5" rx="7" ry="6.2" fill="#09090B"/>
+          <circle cx="13.7" cy="18" r="1.5" fill="#FACC15"/>
+          <circle cx="18.3" cy="18" r="1.5" fill="#FACC15"/>
+        </svg>
+        Mulla Cord
+      </span>
+      <span class="tb-spacer"></span>
+      <div class="tb-controls">
+        <button id="tb-min" title="Minimizar" data-icon="minus" data-icon-size="16"></button>
+        <button id="tb-max" title="Maximizar" data-icon="maximize" data-icon-size="14"></button>
+        <button id="tb-close" class="tb-close" title="Fechar" data-icon="x" data-icon-size="16"></button>
+      </div>
+    </header>
+
+    <!-- Login -->
+    <div id="auth" class="auth">
+      <div class="auth-card">
+        <div class="auth-logo">
+          <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+            <rect width="32" height="32" rx="9" fill="#E8A64C"/>
+            <path d="M9 6.2c0-1 1.1-1.5 1.9-.9L14 7.6M23 6.2c0-1-1.1-1.5-1.9-.9L18 7.6"
+                  stroke="#2c1d08" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+            <path d="M8 12.2a8 7 0 0 1 16 0c0 3.9-3.6 7-8 7-1.1 0-2.1-.2-3-.5l-3.9 1.9.9-3.4A6.6 6.6 0 0 1 8 12.2Z"
+                  fill="#2c1d08"/>
+          </svg>
+          <h1>Mulla Cord</h1>
+        </div>
+
+        <!-- Passo 1: escolher servidor -->
+        <div id="auth-servers">
+          <p class="muted">Your community, in tune. Entre num servidor de amigo — ou hospede o seu.</p>
+          <div class="brand-pills small-pills">
+            <span>Chat</span><span>Voice</span><span>Community</span><span>Live</span>
+          </div>
+
+          <div id="known-servers" class="server-list"></div>
+
+          <div class="server-group" id="lan-group" hidden>
+            <div class="server-group-head">
+              <span>Na sua rede</span>
+              <button id="lan-refresh" class="icon-btn" title="Procurar de novo" data-icon="search" data-icon-size="14"></button>
+            </div>
+            <div id="lan-servers" class="server-list"></div>
+          </div>
+
+          <label>Conectar por endereço ou link
+            <input id="server-url" type="text" placeholder="192.168.0.10:8787  ou  mula://…" spellcheck="false" />
+          </label>
+          <button id="server-connect" class="primary full">Conectar</button>
+          <button id="host-btn" class="ghost full">Hospedar meu servidor neste PC</button>
+          <p id="auth-error" class="error"></p>
+        </div>
+
+        <!-- Passo 2: credenciais -->
+        <div id="auth-creds" hidden>
+          <button id="auth-back" class="linkish">← trocar de servidor</button>
+          <div class="server-badge">
+            <span data-icon="link" data-icon-size="15"></span>
+            <span id="creds-server-name">servidor</span>
+          </div>
+
+          <p id="creds-welcome" class="welcome-note" hidden>Seja o primeiro a criar uma conta neste servidor.</p>
+
+          <div id="auth-tabs" class="seg">
+            <button data-tab="login" class="active">Entrar</button>
+            <button data-tab="register">Criar conta</button>
+          </div>
+
+          <div class="auth-fields">
+            <label id="f-username" hidden>Como quer ser chamado
+              <input id="reg-username" type="text" autocomplete="off" spellcheck="false" placeholder="ex.: leo" />
+            </label>
+            <label id="f-login">Usuário ou e-mail
+              <input id="login-id" type="text" autocomplete="off" spellcheck="false" />
+            </label>
+            <label>Senha
+              <input id="password" type="password" />
+            </label>
+            <p id="pw-hint" class="field-hint" hidden>Mínimo de 6 caracteres.</p>
+            <button id="email-toggle" class="linkish" hidden type="button">+ adicionar e-mail (para recuperar a conta)</button>
+            <label id="f-email" hidden>E-mail
+              <input id="reg-email" type="email" autocomplete="off" spellcheck="false" placeholder="opcional" />
+            </label>
+          </div>
+
+          <button id="auth-submit" class="primary full">Entrar</button>
+          <p id="auth-error2" class="error"></p>
+        </div>
+
+        <!-- Painel de host -->
+        <div id="host-panel" hidden>
+          <button id="host-back" class="linkish">← voltar</button>
+          <h3>Hospedar servidor</h3>
+          <label>Nome do servidor
+            <input id="host-name" type="text" value="Meu servidor Mulla Cord" spellcheck="false" />
+          </label>
+          <div id="host-state" class="host-state">parado</div>
+          <div id="host-addrs" class="host-addrs"></div>
+          <pre id="host-log" class="host-log" hidden></pre>
+          <div class="row">
+            <button id="host-start" class="primary">Iniciar servidor</button>
+            <button id="host-stop" class="ghost" hidden>Parar</button>
+            <button id="host-enter" class="primary" hidden>Entrar neste servidor</button>
+          </div>
+          <p id="auth-error3" class="error"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- App -->
+    <div id="app" class="app" hidden>
+      <nav class="rail">
+        <div class="rail-item" id="rail-home-item">
+          <button id="rail-home" class="rail-btn" title="Mensagens diretas" data-icon="home" data-icon-size="22"></button>
+        </div>
+        <div class="rail-sep"></div>
+        <div id="rail-guilds"></div>
+        <div class="rail-item">
+          <button id="rail-add" class="rail-btn add" title="Adicionar servidor" data-icon="plus" data-icon-size="22"></button>
+        </div>
+      </nav>
+
+      <aside class="sidebar">
+        <div id="home-sidebar">
+          <div class="section-head">
+            <span>Conversas</span>
+            <button id="new-group" class="icon-btn" title="Novo grupo" data-icon="plus" data-icon-size="16"></button>
+          </div>
+          <ul id="channel-list" class="list"></ul>
+
+          <div class="section-head"><span>Amigos</span></div>
+          <div class="add-friend">
+            <input id="friend-username" type="text" placeholder="adicionar por usuário" spellcheck="false" />
+            <button id="friend-add" class="icon-btn" title="Enviar pedido" data-icon="plus" data-icon-size="16"></button>
+          </div>
+          <ul id="friend-list" class="list"></ul>
+          <div id="side-status"></div>
+        </div>
+
+        <div id="guild-sidebar" hidden>
+          <div class="guild-head">
+            <span id="guild-name"></span>
+            <span class="icon-btn" data-icon="chevronDown" data-icon-size="16"></span>
+          </div>
+          <div id="guild-menu" class="guild-menu" hidden>
+            <button data-act="invite"><span class="ico-slot" data-icon="link" data-icon-size="16"></span>Convidar pessoas</button>
+            <button data-act="new-channel"><span class="ico-slot" data-icon="hash" data-icon-size="16"></span>Criar canal</button>
+            <button data-act="new-category"><span class="ico-slot" data-icon="folderPlus" data-icon-size="16"></span>Criar categoria</button>
+            <button data-act="roles"><span class="ico-slot" data-icon="shield" data-icon-size="16"></span>Cargos &amp; permissões</button>
+            <button data-act="nickname"><span class="ico-slot" data-icon="pencil" data-icon-size="16"></span>Mudar apelido</button>
+            <button data-act="leave" class="danger-text"><span class="ico-slot" data-icon="logout" data-icon-size="16"></span>Sair do servidor</button>
+            <button data-act="delete" class="danger-text" hidden><span class="ico-slot" data-icon="trash" data-icon-size="16"></span>Apagar servidor</button>
+          </div>
+          <div id="guild-channels" class="guild-channels"></div>
+        </div>
+
+        <div id="user-panel">
+          <span class="me-identity">
+            <span id="me-avatar" class="avatar-sm"></span>
+            <span id="me-name" class="me-name"></span>
+          </span>
+          <span class="me-actions">
+            <button id="btn-mute-quick" class="icon-btn" title="Mutar" data-icon="mic" data-icon-size="16" hidden></button>
+            <button id="btn-deafen-quick" class="icon-btn" title="Ensurdecer" data-icon="headphones" data-icon-size="16" hidden></button>
+            <button id="open-voice-settings" class="icon-btn" title="Configurações de voz" data-icon="settings" data-icon-size="16"></button>
+            <button id="open-user-settings" class="icon-btn" title="Meu perfil" data-icon="user" data-icon-size="16"></button>
+            <button id="logout" class="icon-btn" title="Sair" data-icon="logout" data-icon-size="16"></button>
+          </span>
+        </div>
+      </aside>
+
+      <main class="content">
+        <header class="channel-header">
+          <div class="title-wrap">
+            <span id="channel-sig" class="ico-slot" hidden></span>
+            <span id="channel-title">Selecione um canal</span>
+            <span id="channel-topic" class="topic" hidden></span>
+          </div>
+          <div class="channel-actions">
+            <button id="btn-voice" class="ghost" hidden><span data-icon="volume" data-icon-size="16"></span>Entrar na call</button>
+            <button id="btn-screen" class="ghost" hidden><span data-icon="screenShare" data-icon-size="16"></span>Tela</button>
+            <button id="btn-members" class="icon-btn" title="Membros" data-icon="users" data-icon-size="18" hidden></button>
+          </div>
+        </header>
+
+        <div id="voice-panel" class="voice-panel" hidden>
+          <div id="voice-title" class="voice-title"></div>
+          <div id="videos" class="videos"></div>
+          <div class="voice-controls">
+            <button id="btn-mute"><span data-icon="mic" data-icon-size="15"></span>Mutar</button>
+            <button id="btn-deafen"><span data-icon="headphones" data-icon-size="15"></span>Ensurdecer</button>
+            <button id="btn-voice-settings" class="ghost"><span data-icon="settings" data-icon-size="15"></span>Voz</button>
+            <button id="btn-leave-voice" class="leave"><span data-icon="phoneOff" data-icon-size="15"></span>Sair</button>
+          </div>
+        </div>
+
+        <div id="messages" class="messages"></div>
+        <div id="empty-state" class="empty-state" hidden>
+          <svg class="brand-wave" viewBox="0 0 1200 200" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M-20 100 C 180 30, 320 170, 520 100 S 880 30, 1080 100 1240 90 1240 90"
+                  fill="none" stroke="url(#wg2)" stroke-width="2" />
+            <g class="wave-nodes" fill="var(--accent)">
+              <circle cx="180" cy="65" r="4"/><circle cx="520" cy="100" r="4"/><circle cx="1080" cy="100" r="4"/>
+            </g>
+            <defs><linearGradient id="wg2" x1="0" x2="1">
+              <stop offset="0" stop-color="var(--accent)" stop-opacity="0"/>
+              <stop offset="0.5" stop-color="var(--accent)"/>
+              <stop offset="1" stop-color="var(--accent)" stop-opacity="0"/>
+            </linearGradient></defs>
+          </svg>
+          <span data-icon="hash" data-icon-size="46"></span>
+          <h3>Nenhum canal aberto</h3>
+          <p>Escolha uma conversa ou um canal para começar.</p>
+        </div>
+        <div id="typing" class="typing"></div>
+
+        <form id="composer" class="composer">
+          <div class="field">
+            <input id="composer-input" type="text" placeholder="Mensagem" autocomplete="off" disabled />
+          </div>
+          <button type="submit" class="send-btn" disabled data-icon="send" data-icon-size="18"></button>
+        </form>
+      </main>
+
+      <aside id="memberlist" class="memberlist" hidden></aside>
+    </div>
+  </div>
+
+  <div id="modal-root"></div>
+  <div id="toasts" class="toasts"></div>
+
+  <!-- Modais estáticos -->
+  <div id="screen-modal" class="modal" hidden>
+    <div class="modal-card">
+      <h3>Compartilhar tela</h3>
+      <div id="screen-sources" class="screen-sources"></div>
+      <div class="modal-actions"><button id="screen-cancel" class="ghost">Cancelar</button></div>
+    </div>
+  </div>
+
+  <div id="group-modal" class="modal" hidden>
+    <div class="modal-card">
+      <h3>Novo grupo</h3>
+      <label>Nome <input id="group-name" type="text" /></label>
+      <div id="group-members" class="group-members"></div>
+      <div class="modal-actions">
+        <button id="group-cancel" class="ghost">Cancelar</button>
+        <button id="group-create" class="primary">Criar</button>
+      </div>
+    </div>
+  </div>
+
+  <audio id="audio-sink" hidden></audio>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

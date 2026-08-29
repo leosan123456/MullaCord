@@ -1,0 +1,77 @@
+{
+  "name": "mulacord-desktop",
+  "version": "0.1.0",
+  "description": "App desktop do Mulacord (Electron)",
+  "main": "electron/main.js",
+  "author": "Mulacord",
+  "license": "MIT",
+  "scripts": {
+    "start": "node scripts/start.js",
+    "dev": "node scripts/start.js --dev",
+    "build:server": "node scripts/build-server.js",
+    "icon": "node scripts/postbuild.js",
+    "dist": "npm run build:server && node scripts/postbuild.js && electron-builder --win --publish never",
+    "dist:dir": "npm run build:server && electron-builder --win --dir"
+  },
+  "devDependencies": {
+    "electron": "^32.0.0",
+    "electron-builder": "^25.1.8",
+    "png-to-ico": "^2.1.8",
+    "rcedit": "^4.0.1"
+  },
+  "build": {
+    "appId": "com.mullacord.desktop",
+    "productName": "Mulla Cord",
+    "executableName": "MullaCord",
+    "copyright": "Copyright © 2026 Mulla Cord",
+    "directories": {
+      "buildResources": "build",
+      "output": "dist-installer"
+    },
+    "files": [
+      "electron/**/*",
+      "src/**/*",
+      "!**/*.map"
+    ],
+    "extraResources": [
+      {
+        "from": "../server/dist/mulacord-server",
+        "to": "server",
+        "filter": ["**/*"]
+      }
+    ],
+    "protocols": [
+      {
+        "name": "Mulacord",
+        "schemes": ["mula"]
+      }
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ],
+      "icon": "build/icon.png",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Mulacord",
+      "runAfterFinish": false,
+      "include": "build/installer.nsh"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "build/icon.png",
+      "category": "public.app-category.social-networking"
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "icon": "build/icon.png",
+      "category": "Network"
+    }
+  }
+}
