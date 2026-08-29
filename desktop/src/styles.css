@@ -611,6 +611,22 @@ button.full { width: 100%; margin-top: 8px; }
 #user-panel .me-actions { display: flex; gap: 1px; }
 #user-panel .icon-btn { width: 30px; height: 30px; }
 #user-panel .icon-btn.on { background: var(--danger-soft); color: var(--danger); }
+#user-panel .me-info { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+
+/* status de jogo */
+.activity {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--green); font-weight: 500; line-height: 1.3; overflow: hidden;
+}
+.activity .ico { color: var(--green); flex: none; }
+.activity .act-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.activity .act-time { font-variant-numeric: tabular-nums; color: var(--text-faint); flex: none; }
+.activity .act-time::before { content: "·"; margin: 0 4px; }
+
+.fr-name, .mr-name { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.list li.has-activity { align-items: flex-start; padding-top: 6px; padding-bottom: 6px; }
+.memberlist .mrow.has-activity { align-items: flex-start; }
+.memberlist .mrow.has-activity .avatar-sm { margin-top: 1px; }
 
 /* ============================================================
    CONTEÚDO / MENSAGENS

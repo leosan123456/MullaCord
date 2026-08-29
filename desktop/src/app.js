@@ -1,7 +1,7 @@
 import { Api } from "./api.js";
 import { Gateway } from "./gateway.js";
 import { VoiceSession } from "./rtc.js";
-import { $, el, state, currentGuild, memberName, dmName, avatarNode, toast, initTheme } from "./store.js";
+import { $, el, state, currentGuild, memberName, dmName, avatarNode, toast, initTheme, elapsedText, activityLine, loadGameCfg } from "./store.js";
 import { P, has, channelPermissions } from "./permissions.js";
 import { icon, hydrateIcons } from "./icons.js";
 import {
@@ -314,7 +314,6 @@ $("btn-deafen-quick").addEventListener("click", () => state.voice?.toggleDeafen(
 window.addEventListener("mula:refresh", () => { refreshMeIdentity(); renderView(); });
 
 function refreshMeIdentity() {
-  $("me-name").textContent = state.me.display_name;
   const av = $("me-avatar");
   av.replaceChildren();
   if (state.me.avatar) {
@@ -324,6 +323,25 @@ function refreshMeIdentity() {
   } else {
     av.textContent = (state.me.display_name || "?")[0].toUpperCase();
   }
+  renderMePanel();
+}
+
+function renderMePanel() {
+  const box = document.querySelector("#user-panel .me-identity");
+  if (!box || !state.me) return;
+  const info = el("div", "me-info");
+  const nm = el("span", "me-name", state.me.display_name);
+  nm.id = "me-name";
+  info.append(nm);
+  const g = state.myGame;
+  if (g) {
+    const a = el("span", "activity me");
+    a.append(icon("gamepad", 12), el("span", "act-name", g.name));
+    const t = el("span", "act-time"); t.dataset.since = g.started_at; t.textContent = elapsedText(g.started_at);
+    a.append(t);
+    info.append(a);
+  }
+  box.replaceChildren($("me-avatar"), info);
 }
 
 // ================= BOOT =================
@@ -344,6 +362,32 @@ async function boot(url, token) {
   state.gw = new Gateway(url, token);
   wireGateway(state.gw);
   state.gw.connect();
+  initGameDetection();
+}
+
+// ================= DETECÇÃO DE JOGO =================
+let _gameWired = false;
+function initGameDetection() {
+  const cfg = loadGameCfg();
+  window.mula?.game?.configure(cfg);
+  if (_gameWired) return;
+  _gameWired = true;
+  window.mula?.game?.onChange((activity) => {
+    state.myGame = activity ? { name: activity.name, started_at: activity.since } : null;
+    state.gw?.setActivity(state.myGame?.name, state.myGame?.started_at);
+    if (state.me) {
+      if (state.myGame) state.activities.set(state.me.id, state.myGame);
+      else state.activities.delete(state.me.id);
+    }
+    renderMePanel();
+    renderView();
+  });
+  // relógio: atualiza todos os timers de atividade a cada segundo
+  setInterval(() => {
+    document.querySelectorAll(".act-time[data-since]").forEach((n) => {
+      n.textContent = elapsedText(+n.dataset.since);
+    });
+  }, 1000);
 }
 
 function renderConnStatus() {
@@ -380,13 +424,28 @@ function wireGateway(gw) {
     (d.voice_states || []).forEach((s) =>
       state.voiceStates.set(s.user_id, { guildId: s.guild_id, channelId: s.channel_id })
     );
+    state.activities.clear();
+    for (const [uid, act] of Object.entries(d.activities || {})) {
+      if (act) state.activities.set(+uid, act);
+    }
+    if (state.myGame) state.activities.set(state.me.id, state.myGame);
     renderRail();
     renderView();
     renderConnStatus();
+    renderMePanel();
+    // re-anuncia o jogo atual ao (re)conectar
+    if (state.myGame) state.gw.setActivity(state.myGame.name, state.myGame.started_at);
   });
   gw.on("conn", () => renderConnStatus());
   gw.on("latency", () => renderConnStatus());
   gw.on("disconnected", () => renderConnStatus());
+
+  gw.on("activity", (d) => {
+    if (d.user_id === state.me.id) return;
+    if (d.activity) state.activities.set(d.user_id, d.activity);
+    else state.activities.delete(d.user_id);
+    renderView();
+  });
 
   gw.on("message_create", (d) => {
     if (d.message.channel_id === state.activeChannelId) appendMessage(d.message);
@@ -592,11 +651,20 @@ function renderHomeSidebar() {
   fl.replaceChildren();
   for (const f of state.friends) {
     const li = el("li");
+    const act = state.online.has(f.user.id) && state.activities.get(f.user.id);
+    if (act) li.classList.add("has-activity");
     li.append(
       avatarNode(f.user.id, "avatar-sm", f.user.display_name),
-      el("span", "dot" + (state.online.has(f.user.id) ? " online" : "")),
-      el("span", "name", f.user.display_name)
+      el("span", "dot" + (state.online.has(f.user.id) ? " online" : ""))
     );
+    const nameWrap = el("div", "fr-name");
+    nameWrap.append(el("span", "name", f.user.display_name));
+    if (act) {
+      const a = activityLine(act);
+      a.prepend(icon("gamepad", 11));
+      nameWrap.append(a);
+    }
+    li.append(nameWrap);
     const actions = el("div", "friend-actions");
     if (f.direction === "incoming") {
       const acc = el("button", "primary", "aceitar");

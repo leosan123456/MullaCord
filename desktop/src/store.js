@@ -10,6 +10,8 @@ export const state = {
   guilds: new Map(),                     // guildId -> guild
   friends: [],
   online: new Set(),
+  activities: new Map(),                 // userId -> { name, started_at }
+  myGame: null,                          // atividade detectada localmente
   voiceStates: new Map(),                // userId -> { guildId, channelId }
   activeChannelId: null,
   voice: null,                           // VoiceSession
@@ -166,6 +168,35 @@ export function avatarNode(userId, cls = "avatar", fallbackName = null) {
   }
   const name = fallbackName || memberName(userId);
   return el("div", cls, (name || "?")[0].toUpperCase());
+}
+
+// ---------------------------------------------------------------- config de jogo
+export function loadGameCfg() {
+  try { return { enabled: true, custom: {}, ...(JSON.parse(localStorage.getItem("mula.games") || "{}")) }; }
+  catch { return { enabled: true, custom: {} }; }
+}
+export function saveGameCfg(cfg) {
+  try { localStorage.setItem("mula.games", JSON.stringify(cfg)); } catch {}
+  window.mula?.game?.configure(cfg);
+}
+
+export function elapsedText(startedAt) {
+  const s = Math.max(0, Math.floor(Date.now() / 1000) - startedAt);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  const p = (n) => String(n).padStart(2, "0");
+  return h > 0 ? `${h}:${p(m)}:${p(sec)}` : `${m}:${p(sec)}`;
+}
+
+// linha "🎮 Jogo · 12:34" que se atualiza sozinha (ver tickActivities em app.js)
+export function activityLine(activity) {
+  if (!activity) return null;
+  const line = el("span", "activity");
+  line.append(el("span", "act-name", activity.name));
+  const t = el("span", "act-time");
+  t.dataset.since = activity.started_at;
+  t.textContent = elapsedText(activity.started_at);
+  line.append(t);
+  return line;
 }
 
 export function hoistedRoleFor(guild, member) {

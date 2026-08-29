@@ -1,5 +1,5 @@
 // Renderização da visão de servidor: sidebar de canais, lista de membros e modais.
-import { $, el, state, currentGuild, memberName, hoistedRoleFor, avatarNode, toast } from "./store.js";
+import { $, el, state, currentGuild, memberName, hoistedRoleFor, avatarNode, toast, activityLine } from "./store.js";
 import { P, PERMISSION_LABELS, has, guildPermissions, channelPermissions } from "./permissions.js";
 import { icon } from "./icons.js";
 import { openChannelSettings } from "./settings.js";
@@ -108,15 +108,23 @@ export function renderMemberList() {
     if (!members.length) return;
     box.append(el("div", "grp", `${title} — ${members.length}`));
     for (const m of members.sort((a, b) => memberName(a.id).localeCompare(memberName(b.id)))) {
-      const row = el("div", "mrow" + (state.online.has(m.id) ? "" : " offline"));
+      const act = state.online.has(m.id) && state.activities.get(m.id);
+      const row = el("div", "mrow" + (state.online.has(m.id) ? "" : " offline") + (act ? " has-activity" : ""));
       row.append(avatarNode(m.id, "avatar-sm", m.nickname || m.display_name));
       const topRole = m.role_ids
         .map((id) => g.roles.find((r) => r.id === id))
         .filter(Boolean)
         .sort((a, b) => b.position - a.position)[0];
+      const nameWrap = el("div", "mr-name");
       const name = el("span", "rname", m.nickname || m.display_name);
       if (topRole && topRole.color) name.style.color = topRole.color;
-      row.append(name);
+      nameWrap.append(name);
+      if (act) {
+        const a = activityLine(act);
+        a.prepend(icon("gamepad", 11));
+        nameWrap.append(a);
+      }
+      row.append(nameWrap);
       if (m.id === g.owner_id) {
         const c = icon("crown", 13);
         c.style.color = "var(--accent)";

@@ -125,6 +125,7 @@ async def gateway(ws: WebSocket) -> None:
                 "friends": await _friends_payload(user_id),
                 "guilds": [await serialize_guild(g) for g in gids],
                 "voice_states": await _voice_states_payload(gids),
+                "activities": await manager.activities_for(user_id),
                 "online": manager.online_users(),
             }
         )
@@ -135,6 +136,19 @@ async def gateway(ws: WebSocket) -> None:
 
             if op == "heartbeat":
                 await ws.send_json({"t": "heartbeat_ack", "ts": msg.get("ts")})
+
+            elif op == "set_activity":
+                act = msg.get("activity")
+                if isinstance(act, dict) and act.get("name"):
+                    import time as _t
+                    activity = {
+                        "type": "playing",
+                        "name": str(act["name"])[:80],
+                        "started_at": int(act.get("started_at") or _t.time()),
+                    }
+                else:
+                    activity = None
+                await manager.set_activity(user_id, activity)
 
             elif op == "send_message":
                 cid, content = msg.get("channel_id"), (msg.get("content") or "").strip()

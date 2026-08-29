@@ -26,5 +26,12 @@ contextBridge.exposeInMainWorld("mula", {
     onState: (cb) => ipcRenderer.on("host-state", (_e, s) => cb(s)),
   },
 
+  game: {
+    configure: (cfg) => ipcRenderer.invoke("game:configure", cfg),
+    candidates: () => ipcRenderer.invoke("game:candidates"),
+    current: () => ipcRenderer.invoke("game:current"),
+    onChange: (cb) => ipcRenderer.on("game-activity", (_e, activity) => cb(activity)),
+  },
+
   onDeepLink: (cb) => ipcRenderer.on("deep-link", (_e, url) => cb(url)),
 });

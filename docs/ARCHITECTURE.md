@@ -110,6 +110,18 @@ Hierarquia: só mexe em cargo/membro de posição abaixo da sua (salvo dono).
 O `heartbeat` do cliente leva `ts` (timestamp); o `heartbeat_ack` devolve o mesmo
 `ts` pro app medir latência.
 
+## Status de jogo
+
+O `main.js` do Electron (`games.js`) roda `tasklist` a cada 18 s e compara os
+processos com `electron/games.json` (~100 jogos) + a lista que o usuário adicionou
+(`localStorage['mula.games']`). Quando um jogo entra/sai, manda por IPC pro
+renderer, que envia `set_activity` `{name, started_at}` pelo gateway. O
+`ConnectionManager` guarda a atividade em memória (some ao desconectar) e faz
+`broadcast_user_scope`; o `ready` traz `activities` de quem o usuário vê. O cliente
+mostra "🎮 Jogo · MM:SS" (timer que tica de 1 em 1 s) na lista de membros, na lista
+de amigos e no painel do usuário. Dá pra desligar ou adicionar jogos manualmente
+nas configurações de perfil.
+
 ## Anexos (imagens e vídeos)
 
 Fluxo em 2 passos: `POST /api/channels/{c}/attachments` (multipart, checa
@@ -125,6 +137,7 @@ grade de miniaturas na mensagem + lightbox com navegação.
 | `rtc_join` | `channel_id` | entra no canal de voz (checa `CONNECT`; 1 por guild) |
 | `rtc_leave` | `channel_id` | sai da call |
 | `rtc_signal` | `channel_id`, `to_user_id`, `data` | repassa SDP/ICE opaco a um peer |
+| `set_activity` | `activity` (`{name, started_at}` ou `null`) | status de "jogando" |
 
 ### Servidor → cliente (`t`)
 
@@ -144,6 +157,7 @@ grade de miniaturas na mensagem + lightbox com navegação.
 | `guild_member_add` / `guild_member_remove` | `guild_id`, `member`/`user_id` |
 | `guild_member_update` | `guild_id`, `user_id`, `role_ids?`, `nickname?` |
 | `voice_state_update` | `guild_id`, `channel_id` (null = saiu), `user_id` |
+| `activity` | `user_id`, `activity` (`{type:"playing", name, started_at}` ou `null`) |
 | `rtc_peers` | `channel_id`, `user_ids[]` (quem já estava na call) |
 | `rtc_peer_join` / `rtc_peer_leave` | `channel_id`, `user_id` |
 | `rtc_signal` | `channel_id`, `from_user_id`, `data` |

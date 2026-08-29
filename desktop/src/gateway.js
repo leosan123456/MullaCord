@@ -89,6 +89,12 @@ export class Gateway extends EventTarget {
   rtcSignal(channelId, toUserId, data) {
     this._send({ op: "rtc_signal", channel_id: channelId, to_user_id: toUserId, data });
   }
+  setActivity(name, startedAt) {
+    this._send({
+      op: "set_activity",
+      activity: name ? { name, started_at: startedAt || Math.floor(Date.now() / 1000) } : null,
+    });
+  }
 
   close() {
     this._closedByUser = true;

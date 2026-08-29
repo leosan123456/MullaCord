@@ -61,6 +61,9 @@ vira o dono.
 - DMs e grupos no botão 🏠; servidores na barra à esquerda.
 - **Imagens e vídeos**: botão de clipe no campo de mensagem, ou arraste o arquivo
   pra janela, ou cole (Ctrl+V). Clique numa imagem pra ver em tela cheia.
+- **Status de jogo**: o app reconhece o jogo que você abriu e mostra aos amigos o
+  nome e o tempo de sessão. Liga/desliga em perfil 👤 → *Status de jogo* (lá também
+  dá pra cadastrar um jogo que não foi reconhecido).
 - Canal de voz: clique no 🔊 (ou **Entrar na call** numa DM). O Windows pede
   permissão de microfone na 1ª vez.
 - **Tela**: botão dentro da chamada → escolha monitor/janela.

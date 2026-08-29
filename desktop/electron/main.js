@@ -5,6 +5,7 @@ const path = require("path");
 const os = require("os");
 const dgram = require("dgram");
 const { spawn } = require("child_process");
+const games = require("./games");
 
 const isDev = !app.isPackaged;
 let mainWindow = null;
@@ -176,6 +177,12 @@ function createWindow() {
   ipcMain.handle("net:discover", (_e, port) => discoverLan(port || 8788));
   ipcMain.handle("net:lan", () => lanAddresses());
 
+  // detecção de jogos
+  games.start((activity) => win.webContents.send("game-activity", activity));
+  ipcMain.handle("game:configure", (_e, cfg) => games.configure(cfg || {}));
+  ipcMain.handle("game:candidates", () => games.candidateProcesses());
+  ipcMain.handle("game:current", () => games.current);
+
   // modo host
   ipcMain.handle("host:start", (_e, opts) => startHost(opts || {}));
   ipcMain.handle("host:stop", () => stopHost());
@@ -206,5 +213,5 @@ app.whenReady().then(() => {
   app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
 
-app.on("before-quit", () => stopHost());
-app.on("window-all-closed", () => { stopHost(); if (process.platform !== "darwin") app.quit(); });
+app.on("before-quit", () => { stopHost(); games.stop(); });
+app.on("window-all-closed", () => { stopHost(); games.stop(); if (process.platform !== "darwin") app.quit(); });

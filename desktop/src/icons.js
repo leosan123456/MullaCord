@@ -43,6 +43,7 @@ export const ICONS = {
   paperclip: '<path d="M20 11.5 12.5 19a5 5 0 0 1-7-7l8-8a3.4 3.4 0 0 1 4.8 4.8l-8 8a1.8 1.8 0 0 1-2.5-2.5l7-7"/>',
   download: '<path d="M12 3v12M7 11l5 5 5-5M4 20h16"/>',
   play: '<path d="M7 4.5v15l13-7.5-13-7.5Z"/>',
+  gamepad: '<path d="M7 10h2M8 9v2M15 10h.01M17.5 12h.01"/><path d="M6.5 6h11a4.5 4.5 0 0 1 4.4 3.6l1 5A3 3 0 0 1 20 18a3 3 0 0 1-2.4-1.2L16 15H8l-1.6 1.8A3 3 0 0 1 4 18a3 3 0 0 1-2.9-3.4l1-5A4.5 4.5 0 0 1 6.5 6Z"/>',
 };
 
 export function icon(name, size = 20) {

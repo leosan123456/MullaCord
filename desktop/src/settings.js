@@ -1,5 +1,5 @@
 // Modais de configuração: voz, perfil do usuário e canal (com editor de overwrites).
-import { $, el, state, currentGuild, toast, loadUi, saveUi, ACCENT_PRESETS } from "./store.js";
+import { $, el, state, currentGuild, toast, loadUi, saveUi, ACCENT_PRESETS, loadGameCfg, saveGameCfg } from "./store.js";
 import { P, PERMISSION_LABELS, guildPermissions, has } from "./permissions.js";
 import { icon } from "./icons.js";
 import { loadAudio, saveAudio, listDevices, createMeter } from "./audio.js";
@@ -89,6 +89,12 @@ export function openUserSettings() {
   body.append(el("div", "grp", "Aparência"));
   body.append(appearanceControls());
 
+  // jogos
+  if (window.mula?.game) {
+    body.append(el("div", "grp", "Status de jogo"));
+    body.append(gameControls());
+  }
+
   const actions = el("div", "modal-actions");
   const cancel = el("button", "ghost", "Cancelar");
   cancel.addEventListener("click", close);
@@ -106,6 +112,75 @@ export function openUserSettings() {
     } catch (e) { toast(e.message, "error"); }
   });
   actions.append(cancel, save);
+  body.append(actions);
+}
+
+// ---------------------------------------------------------------- status de jogo
+function gameControls() {
+  const wrap = el("div", "game-cfg");
+  let cfg = loadGameCfg();
+  const persist = () => saveGameCfg(cfg);
+
+  const render = () => {
+    wrap.replaceChildren();
+
+    const row = el("label", "toggle-row");
+    const cb = el("input"); cb.type = "checkbox"; cb.checked = cfg.enabled !== false;
+    cb.addEventListener("change", () => { cfg.enabled = cb.checked; persist(); render(); });
+    row.append(el("span", null, "Mostrar aos amigos o jogo que estou jogando"), cb);
+    wrap.append(row);
+
+    if (cfg.enabled === false) return;
+
+    wrap.append(el("p", "field-hint",
+      "O app reconhece jogos populares automaticamente. Adicione outros abaixo."));
+
+    const custom = cfg.custom || {};
+    if (Object.keys(custom).length) {
+      const list = el("div", "member-admin");
+      for (const [exe, nm] of Object.entries(custom)) {
+        const r = el("div", "tag-row");
+        r.append(el("strong", null, nm), el("span", "muted small", exe));
+        const rm = el("button", "danger-text", "remover");
+        rm.addEventListener("click", () => { delete cfg.custom[exe]; persist(); render(); });
+        r.append(rm);
+        list.append(r);
+      }
+      wrap.append(list);
+    }
+
+    const add = el("button", "ghost", "＋ Adicionar jogo");
+    add.addEventListener("click", () => addGameModal(cfg, () => { persist(); render(); }));
+    wrap.append(add);
+  };
+
+  render();
+  return wrap;
+}
+
+function addGameModal(cfg, done) {
+  const { body, close } = overlay("Adicionar jogo", 420);
+  body.append(el("p", "muted", "Deixe o jogo aberto e escolha o processo dele:"));
+  const sel = el("select");
+  sel.innerHTML = "<option>carregando…</option>";
+  window.mula.game.candidates().then((procs) => {
+    sel.innerHTML = procs.map((p) => `<option value="${p}">${p}</option>`).join("")
+      || "<option value=''>nenhum processo candidato</option>";
+  });
+  const nm = el("input"); nm.placeholder = "Nome que vai aparecer (ex.: Meu Jogo)";
+  body.append(labeled("Processo", sel), labeled("Nome", nm));
+  const actions = el("div", "modal-actions");
+  const c = el("button", "ghost", "Cancelar"); c.addEventListener("click", close);
+  const ok = el("button", "primary", "Adicionar");
+  ok.addEventListener("click", () => {
+    const exe = sel.value, name = nm.value.trim();
+    if (!exe || !name) return;
+    cfg.custom = cfg.custom || {};
+    cfg.custom[exe] = name;
+    close();
+    done();
+  });
+  actions.append(c, ok);
   body.append(actions);
 }
 

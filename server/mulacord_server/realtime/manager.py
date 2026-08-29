@@ -12,6 +12,7 @@ from ..database import db
 class ConnectionManager:
     def __init__(self) -> None:
         self._conns: dict[int, set[WebSocket]] = defaultdict(set)
+        self._activity: dict[int, dict] = {}   # user_id -> {type, name, started_at}
         self._lock = asyncio.Lock()
 
     # -- ciclo de vida --------------------------------------------------
@@ -30,7 +31,23 @@ class ConnectionManager:
             if gone:
                 self._conns.pop(user_id, None)
         if gone:
+            self._activity.pop(user_id, None)
             await self._broadcast_presence(user_id, "offline")
+
+    # -- atividade (jogo) ---------------------------------------------
+    async def set_activity(self, user_id: int, activity: dict | None) -> None:
+        if activity:
+            self._activity[user_id] = activity
+        else:
+            self._activity.pop(user_id, None)
+        await self.broadcast_user_scope(
+            user_id, {"t": "activity", "user_id": user_id, "activity": activity}
+        )
+
+    async def activities_for(self, user_id: int) -> dict[str, dict]:
+        """Atividades de quem o usuário "vê" (amigos, co-membros) + a dele."""
+        scope = set(await self._scope_user_ids(user_id)) | {user_id}
+        return {str(uid): act for uid, act in self._activity.items() if uid in scope}
 
     def online_users(self) -> list[int]:
         return list(self._conns.keys())
