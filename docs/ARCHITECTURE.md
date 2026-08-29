@@ -63,6 +63,11 @@ simétrico pode falhar (fase futura).
 | `messages` | id, channel_id, author_id, content, edited_at, created_at |
 | `attachments` | id (token), message_id (null até enviar), channel_id, uploader_id, filename, stored_name, content_type, size, width, height, kind (`image`/`video`) |
 
+- **Amigos**: `GET /api/users?q=` lista/busca as contas do servidor (menos você) com
+  o `relationship` de cada uma (`none`/`outgoing`/`incoming`/`friend`) — é o
+  diretório para achar quem adicionar. `POST /api/friends/request {username}` manda o
+  pedido; o alvo recebe `friend_request` ao vivo e aceita em `POST /api/friends/{id}/accept`
+  (o outro lado recebe `friend_accepted`).
 - **DM**: canal `dm` com 2 membros, criado sob demanda entre amigos (usa `channel_members`).
 - **Servidor (guild)**: um backend hospeda vários. Ao criar, ganha `@everyone` +
   categoria "Geral" + `#geral` + `🔊 Voz Geral`. Entrada por código de convite.

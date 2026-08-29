@@ -187,11 +187,15 @@
           </div>
           <ul id="channel-list" class="list"></ul>
 
-          <div class="section-head"><span>Amigos</span></div>
-          <div class="add-friend">
-            <input id="friend-username" type="text" placeholder="adicionar por usuário" spellcheck="false" />
-            <button id="friend-add" class="icon-btn" title="Enviar pedido" data-icon="plus" data-icon-size="16"></button>
+          <div class="section-head">
+            <span>Amigos</span>
+            <button id="find-people" class="icon-btn" title="Encontrar pessoas neste servidor" data-icon="users" data-icon-size="15"></button>
           </div>
+          <div class="add-friend">
+            <span class="ico-slot" data-icon="search" data-icon-size="14"></span>
+            <input id="friend-username" type="text" placeholder="buscar pessoas do servidor" spellcheck="false" />
+          </div>
+          <div id="people-results" class="people-results" hidden></div>
           <ul id="friend-list" class="list"></ul>
           <div id="side-status"></div>
         </div>

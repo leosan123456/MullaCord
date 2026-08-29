@@ -56,6 +56,13 @@ Aba **Criar conta**:
 Cada servidor tem contas próprias. O primeiro a criar conta num servidor novo
 vira o dono.
 
+## 3.1 Adicionar amigos
+
+Todo mundo que criou conta no mesmo servidor aparece no botão **👥** ao lado de
+"Amigos" (ou digitando na caixa **buscar pessoas do servidor**). Clique no **+**
+para mandar o pedido; a outra pessoa aceita e vocês já podem trocar DM. Não
+precisa saber o nome de usuário exato — a lista mostra todo mundo.
+
 ## 4. Conversar, voz e tela
 
 - DMs e grupos no botão 🏠; servidores na barra à esquerda.

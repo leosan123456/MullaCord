@@ -11,7 +11,7 @@ from . import discovery
 from .config import DISCOVERY_PORT, OPEN_REGISTRATION, SERVER_ID, SERVER_NAME
 from .database import db
 from .realtime.gateway import router as gateway_router
-from .routers import accounts, attachments, channels, friends, guilds, messages
+from .routers import accounts, attachments, channels, friends, guilds, messages, users
 
 
 @asynccontextmanager
@@ -50,6 +50,7 @@ async def info() -> dict:
 
 
 app.include_router(accounts.router)
+app.include_router(users.router)
 app.include_router(friends.router)
 app.include_router(guilds.router)
 app.include_router(channels.router)

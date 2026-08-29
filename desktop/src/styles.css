@@ -532,9 +532,35 @@ button.full { width: 100%; margin-top: 8px; }
 .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--text-faint); flex: none; }
 .dot.online { background: var(--green); box-shadow: 0 0 0 2px var(--bg-sidebar); }
 
-.add-friend { display: flex; gap: 6px; margin: 4px 8px 8px; }
-.add-friend input { padding: 8px 10px; font-size: 13px; }
-.add-friend .icon-btn { flex: none; width: 36px; height: 36px; background: var(--bg-elevated); }
+.add-friend {
+  display: flex; align-items: center; gap: 7px; margin: 4px 8px 6px;
+  padding: 0 10px; background: var(--bg-input-solid);
+  border: 1px solid var(--border); border-radius: 10px;
+}
+.add-friend:focus-within { border-color: var(--accent); }
+.add-friend .ico { color: var(--text-faint); flex: none; }
+.add-friend input {
+  flex: 1; padding: 9px 0; font-size: 13px; background: transparent; border: none; box-shadow: none;
+}
+.add-friend input:focus { box-shadow: none; }
+
+.people-results {
+  margin: 0 8px 8px; max-height: 240px; overflow-y: auto;
+  background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: var(--shadow-sm); animation: pop-in 130ms ease both;
+}
+.people-empty { padding: 14px; font-size: 12px; color: var(--text-faint); text-align: center; }
+.person-row {
+  display: flex; align-items: center; gap: 9px; padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.person-row:last-child { border-bottom: none; }
+.pr-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pr-name { font-size: 13px; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pr-user { font-size: 11px; color: var(--text-faint); }
+.pr-action { flex: none; }
+.pr-action button { padding: 5px 9px; font-size: 12px; border-radius: 8px; display: inline-flex; align-items: center; }
+.pr-action button:not(.primary) { background: var(--accent-soft); color: var(--accent); }
 
 .friend-actions { margin-left: auto; display: flex; gap: 4px; align-items: center; }
 .friend-actions button { padding: 4px 9px; font-size: 12px; border-radius: 7px; }

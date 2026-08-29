@@ -487,8 +487,14 @@ function wireGateway(gw) {
   });
   gw.on("channel_delete", (d) => applyGuildChannel({ id: d.channel_id, guild_id: d.guild_id }, "delete"));
 
-  gw.on("friend_request", () => refreshFriends());
-  gw.on("friend_accepted", () => refreshFriends());
+  gw.on("friend_request", (d) => {
+    refreshFriends();
+    toast(`${d.user?.display_name || "Alguém"} quer ser seu amigo`, "info");
+  });
+  gw.on("friend_accepted", (d) => {
+    refreshFriends();
+    toast(`${d.user?.display_name || "Alguém"} aceitou seu pedido`, "success");
+  });
 
   gw.on("user_update", (d) => {
     const u = d.user;
@@ -566,6 +572,7 @@ function applyGuildChannel(channel, mode) {
 async function refreshFriends() {
   state.friends = await state.api.friends();
   renderView();
+  if (!$("people-results").hidden) runPeopleSearch($("friend-username").value.trim());
 }
 
 // ================= VIEW ROUTING =================
@@ -694,15 +701,75 @@ function renderHomeSidebar() {
   }
 }
 
-$("friend-add").addEventListener("click", async () => {
-  const u = $("friend-username").value.trim();
-  if (!u) return;
-  try {
-    await state.api.addFriend(u);
-    $("friend-username").value = "";
-    refreshFriends();
-    toast("Pedido enviado", "success");
-  } catch (e) { toast(e.message, "error"); }
+// ---------------- encontrar pessoas no servidor ----------------
+let _peopleTimer = null;
+async function runPeopleSearch(q) {
+  const box = $("people-results");
+  let list;
+  try { list = await state.api.searchUsers(q); }
+  catch (e) { toast(e.message, "error"); return; }
+  box.replaceChildren();
+  box.hidden = false;
+  if (!list.length) {
+    box.append(el("div", "people-empty", q ? "Ninguém encontrado" : "Você é a única conta aqui ainda"));
+    return;
+  }
+  for (const u of list) {
+    const row = el("div", "person-row");
+    row.append(
+      avatarNode(u.id, "avatar-sm", u.display_name),
+      el("div", "pr-info"),
+    );
+    row.querySelector(".pr-info").append(
+      el("span", "pr-name", u.display_name),
+      el("span", "pr-user", "@" + u.username),
+    );
+    const act = el("div", "pr-action");
+    if (u.relationship === "friend") act.append(el("span", "small muted", "amigos"));
+    else if (u.relationship === "outgoing") act.append(el("span", "small muted", "pendente"));
+    else if (u.relationship === "incoming") {
+      const b = el("button", "primary", "aceitar");
+      b.addEventListener("click", async () => {
+        const fr = state.friends.find((f) => f.user.id === u.id && f.direction === "incoming");
+        if (fr) { await state.api.acceptFriend(fr.id); refreshFriends(); runPeopleSearch(q); }
+      });
+      act.append(b);
+    } else {
+      const b = el("button", "");
+      b.append(icon("plus", 14));
+      b.title = "Adicionar";
+      b.addEventListener("click", async () => {
+        try {
+          await state.api.addFriend(u.username);
+          toast(`Pedido enviado para ${u.display_name}`, "success");
+          refreshFriends();
+          runPeopleSearch(q);
+        } catch (e) { toast(e.message, "error"); }
+      });
+      act.append(b);
+    }
+    row.append(act);
+    box.append(row);
+  }
+}
+
+$("friend-username").addEventListener("input", () => {
+  clearTimeout(_peopleTimer);
+  const q = $("friend-username").value.trim();
+  if (!q) { $("people-results").hidden = true; return; }
+  _peopleTimer = setTimeout(() => runPeopleSearch(q), 220);
+});
+$("friend-username").addEventListener("focus", () => {
+  const q = $("friend-username").value.trim();
+  if (q) runPeopleSearch(q);
+});
+$("find-people").addEventListener("click", () => {
+  $("friend-username").focus();
+  runPeopleSearch("");
+});
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".add-friend") && !e.target.closest("#people-results") && !e.target.closest("#find-people"))
+    $("people-results").hidden = true;
 });
 
 // ================= GUILD MENU =================

@@ -4,6 +4,9 @@
 pessoa cria uma conta (só nome + senha) e hospeda o próprio servidor no PC. Amigos
 entram pela descoberta na rede local ou por um link `mula://`.
 
+- **Multiusuário no mesmo servidor**: cada pessoa cria a conta dela, encontra as
+  outras contas no diretório do servidor, manda pedido de amizade e conversa em
+  tempo real (presença, "digitando")
 - **Chat privado (DM) e grupos** de amigos
 - **Servidores (guilds)** estilo Discord: canais de texto/voz, categorias, convites,
   lista de membros e **sistema completo de cargos e permissões** (bitfield, hierarquia,
@@ -81,6 +84,7 @@ Teste rápido do backend (com o servidor no ar, noutro terminal):
 .\.venv\Scripts\python.exe scripts\smoke_discovery.py  # descoberta LAN por UDP + /api/info
 .\.venv\Scripts\python.exe scripts\smoke_attachments.py # upload de imagem, mensagem com anexo, download
 .\.venv\Scripts\python.exe scripts\smoke_activity.py    # status de jogo propagado a amigos
+.\.venv\Scripts\python.exe scripts\smoke_e2e.py         # 2 usuários: busca, amizade, DM dos 2 lados
 ```
 
 Amigos na mesma rede aparecem automaticamente no login. De fora da LAN, o host

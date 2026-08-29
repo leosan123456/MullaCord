@@ -53,6 +53,7 @@ export class Api {
 
   // -- amigos --
   friends() { return this.get("/api/friends"); }
+  searchUsers(q = "") { return this.get(`/api/users?q=${encodeURIComponent(q)}`); }
   addFriend(username) { return this.post("/api/friends/request", { username }); }
   acceptFriend(id) { return this.post(`/api/friends/${id}/accept`); }
   removeFriend(id) { return this.del(`/api/friends/${id}`); }
