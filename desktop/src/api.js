@@ -85,6 +85,31 @@ export class Api {
     return this.del(`/api/channels/${channelId}/messages/${messageId}`);
   }
 
+  async uploadAttachments(channelId, files, onProgress) {
+    const fd = new FormData();
+    for (const f of files) fd.append("files", f, f.name || "anexo");
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `${this.baseUrl}/api/channels/${channelId}/attachments`);
+      xhr.setRequestHeader("Authorization", `Bearer ${this.token}`);
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable && onProgress) onProgress(e.loaded / e.total);
+      };
+      xhr.onload = () => {
+        let data = null;
+        try { data = JSON.parse(xhr.responseText); } catch {}
+        if (xhr.status >= 200 && xhr.status < 300) resolve(data);
+        else reject(new Error((data && (data.detail || data.message)) || `upload falhou (${xhr.status})`));
+      };
+      xhr.onerror = () => reject(new Error("falha de rede no upload"));
+      xhr.send(fd);
+    });
+  }
+
+  attachmentUrl(att) {
+    return `${this.baseUrl}${att.url}?t=${encodeURIComponent(this.token)}`;
+  }
+
   // -- servidores (guilds) --
   permissionFlags() { return this.get("/api/permissions"); }
   guilds() { return this.get("/api/guilds"); }

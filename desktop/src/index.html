@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; connect-src *; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; style-src 'self' 'unsafe-inline';" />
+        content="default-src 'self'; connect-src *; img-src 'self' data: blob: http: https:; media-src 'self' blob: mediastream: http: https:; style-src 'self' 'unsafe-inline';" />
   <title>Mulla Cord</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
@@ -273,7 +273,17 @@
         </div>
         <div id="typing" class="typing"></div>
 
+        <div id="drop-hint" class="drop-hint" hidden>
+          <span data-icon="image" data-icon-size="40"></span>
+          <p>Solte para enviar imagens ou vídeos</p>
+        </div>
+
+        <div id="pending-strip" class="pending-strip" hidden></div>
+
         <form id="composer" class="composer">
+          <button type="button" id="attach-btn" class="attach-btn" title="Anexar imagem/vídeo" disabled
+                  data-icon="paperclip" data-icon-size="18"></button>
+          <input id="attach-input" type="file" accept="image/*,video/*" multiple hidden />
           <div class="field">
             <input id="composer-input" type="text" placeholder="Mensagem" autocomplete="off" disabled />
           </div>

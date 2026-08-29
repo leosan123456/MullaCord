@@ -80,7 +80,9 @@ export class Gateway extends EventTarget {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(obj));
   }
 
-  sendMessage(channelId, content) { this._send({ op: "send_message", channel_id: channelId, content }); }
+  sendMessage(channelId, content, attachmentIds) {
+    this._send({ op: "send_message", channel_id: channelId, content, attachment_ids: attachmentIds || [] });
+  }
   typing(channelId) { this._send({ op: "typing", channel_id: channelId }); }
   rtcJoin(channelId) { this._send({ op: "rtc_join", channel_id: channelId }); }
   rtcLeave(channelId) { this._send({ op: "rtc_leave", channel_id: channelId }); }

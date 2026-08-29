@@ -40,6 +40,9 @@ export const ICONS = {
   camera: '<path d="M4 7h3l1.5-2h7L20 7h0a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13" r="3.5"/>',
   folderPlus: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/><path d="M12 11v5M9.5 13.5h5"/>',
   link: '<path d="M9 15 15 9M10.5 6 12 4.5a4 4 0 0 1 6 6L16.5 12M13.5 18 12 19.5a4 4 0 0 1-6-6L7.5 12"/>',
+  paperclip: '<path d="M20 11.5 12.5 19a5 5 0 0 1-7-7l8-8a3.4 3.4 0 0 1 4.8 4.8l-8 8a1.8 1.8 0 0 1-2.5-2.5l7-7"/>',
+  download: '<path d="M12 3v12M7 11l5 5 5-5M4 20h16"/>',
+  play: '<path d="M7 4.5v15l13-7.5-13-7.5Z"/>',
 };
 
 export function icon(name, size = 20) {

@@ -98,4 +98,9 @@ class SendMessageIn(BaseModel):
     content: str = Field(min_length=1, max_length=4000)
 
 
+class PostMessageIn(BaseModel):
+    content: str = Field(default="", max_length=4000)
+    attachment_ids: list[str] = Field(default_factory=list, max_length=10)
+
+
 TokenOut.model_rebuild()

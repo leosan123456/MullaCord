@@ -11,7 +11,7 @@ from . import discovery
 from .config import DISCOVERY_PORT, OPEN_REGISTRATION, SERVER_ID, SERVER_NAME
 from .database import db
 from .realtime.gateway import router as gateway_router
-from .routers import accounts, channels, friends, guilds, messages
+from .routers import accounts, attachments, channels, friends, guilds, messages
 
 
 @asynccontextmanager
@@ -53,6 +53,7 @@ app.include_router(accounts.router)
 app.include_router(friends.router)
 app.include_router(guilds.router)
 app.include_router(channels.router)
+app.include_router(attachments.router)
 app.include_router(messages.router)
 app.include_router(gateway_router)
 

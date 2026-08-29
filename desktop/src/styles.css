@@ -692,6 +692,93 @@ button.full { width: 100%; margin-top: 8px; }
   display: flex; align-items: center; justify-content: center;
 }
 .composer .send-btn:disabled { background: var(--bg-elevated); color: var(--text-faint); }
+.composer .attach-btn {
+  width: 38px; height: 38px; border-radius: 11px; flex: none;
+  background: var(--bg-elevated); color: var(--text-muted);
+  display: flex; align-items: center; justify-content: center;
+  transition: background 140ms, color 140ms;
+}
+.composer .attach-btn:hover { background: var(--bg-hover); color: var(--accent); filter: none; }
+.composer .attach-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* tira de anexos pendentes */
+.pending-strip {
+  display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 16px 0;
+  animation: pop-in 150ms ease both;
+}
+.pending-chip {
+  position: relative; width: 84px; height: 84px; border-radius: 12px; overflow: hidden;
+  background: var(--bg-elevated); border: 1px solid var(--border); flex: none;
+  display: flex; align-items: center; justify-content: center;
+}
+.pending-chip img, .pending-chip video { width: 100%; height: 100%; object-fit: cover; }
+.pending-chip .ico { position: absolute; color: #fff; opacity: 0.9; filter: drop-shadow(0 1px 3px rgba(0,0,0,.6)); }
+.pending-chip .chip-x {
+  position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; padding: 0;
+  border-radius: 50%; background: rgba(0,0,0,0.65); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+}
+.pending-chip .chip-x:hover { background: var(--danger); filter: none; }
+.pending-chip .chip-progress {
+  position: absolute; left: 0; bottom: 0; height: 3px; background: var(--accent);
+  transition: width 120ms;
+}
+
+/* overlay de arrastar-soltar */
+.drop-hint {
+  position: absolute; inset: 8px; z-index: 40; border-radius: 16px;
+  border: 2px dashed var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--bg-content));
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; color: var(--accent); pointer-events: none;
+  animation: fade-in 120ms ease both;
+}
+.drop-hint p { font-weight: 600; }
+
+/* anexos na mensagem */
+.msg-attachments {
+  display: grid; gap: 4px; margin-top: 6px; max-width: 480px;
+}
+.msg-attachments.n1 { grid-template-columns: 1fr; }
+.msg-attachments.n2, .msg-attachments.n4 { grid-template-columns: 1fr 1fr; }
+.msg-attachments.n3 { grid-template-columns: 1fr 1fr 1fr; }
+.att-cell {
+  position: relative; border-radius: 10px; overflow: hidden; background: var(--bg-elevated);
+  display: flex; align-items: center; justify-content: center; min-height: 60px;
+}
+.att-img {
+  max-width: 100%; max-height: 340px; width: 100%; object-fit: cover; cursor: zoom-in;
+  display: block; background: var(--bg-input-solid);
+}
+.msg-attachments.n1 .att-img { object-fit: contain; max-height: 400px; }
+.att-video { max-width: 100%; max-height: 360px; width: 100%; border-radius: 10px; background: #000; }
+.att-dl {
+  position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; border-radius: 8px;
+  background: rgba(0,0,0,0.6); color: #fff; display: none;
+  align-items: center; justify-content: center; text-decoration: none;
+}
+.att-cell:hover .att-dl { display: flex; }
+.att-dl:hover { background: rgba(0,0,0,0.85); }
+
+/* lightbox */
+.lightbox {
+  position: fixed; inset: 0; z-index: 400; background: rgba(0,0,0,0.9);
+  display: flex; align-items: center; justify-content: center; padding: 40px;
+  animation: fade-in 140ms ease both;
+}
+.lightbox img { max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: var(--shadow-lg); }
+.lb-caption {
+  position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+  font-size: 12px; color: var(--text-muted); background: rgba(0,0,0,0.5);
+  padding: 5px 12px; border-radius: 999px;
+}
+.lb-nav {
+  position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 44px;
+  border-radius: 50%; background: rgba(255,255,255,0.1); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+}
+.lb-nav:hover { background: rgba(255,255,255,0.2); filter: none; }
+.lb-nav.prev { left: 16px; }
+.lb-nav.next { right: 16px; }
 
 .empty-state {
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;

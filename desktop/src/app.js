@@ -684,10 +684,12 @@ async function openChannel(id) {
   $("empty-state").hidden = true;
   $("messages").hidden = false;
   $("composer-input").disabled = !canSend;
-  $("composer").querySelector(".send-btn").disabled = !canSend;
+  $("attach-btn").disabled = !canSend;
   $("composer-input").placeholder = canSend ? "Mensagem" : "Você não pode enviar mensagens neste canal";
   $("btn-voice").hidden = !!g;
   $("typing").textContent = "";
+  clearPending();
+  updateSendEnabled();
   document.querySelectorAll(`[data-cid="${id}"] .unread, #channel-list li[data-id="${id}"] .unread`)
     .forEach((n) => n.remove());
 
@@ -797,7 +799,8 @@ function buildMessageNode(m, prev) {
   const textEl = el("div", "text");
   textEl.append(renderContent(m.content));
   if (m.edited_at) textEl.append(el("span", "edited", "(editado)"));
-  body.append(textEl);
+  if (m.content || m.edited_at) body.append(textEl);
+  if (m.attachments?.length) body.append(renderAttachments(m.attachments));
   wrap.append(body);
 
   const mine = m.author.id === state.me.id;
@@ -826,9 +829,67 @@ function buildMessageNode(m, prev) {
 }
 
 function patchMessageNode(node, m) {
-  const textEl = node.querySelector(".text");
+  let textEl = node.querySelector(".text");
+  if (!textEl) { textEl = el("div", "text"); node.querySelector(".body").insertBefore(textEl, node.querySelector(".msg-attachments")); }
   textEl.replaceChildren(renderContent(m.content));
   if (m.edited_at) textEl.append(el("span", "edited", "(editado)"));
+}
+
+// ---------------- render de anexos ----------------
+function renderAttachments(atts) {
+  const grid = el("div", "msg-attachments n" + Math.min(atts.length, 4));
+  atts.forEach((a, i) => {
+    const cell = el("div", "att-cell");
+    const url = state.api.attachmentUrl(a);
+    if (a.kind === "image") {
+      const img = el("img", "att-img");
+      img.src = url; img.loading = "lazy"; img.alt = a.filename;
+      if (a.width && a.height) img.style.aspectRatio = `${a.width} / ${a.height}`;
+      img.addEventListener("click", () => openLightbox(atts, i));
+      cell.append(img);
+    } else {
+      const v = el("video", "att-video");
+      v.src = url; v.controls = true; v.preload = "metadata";
+      cell.append(v);
+    }
+    const dl = el("a", "att-dl");
+    dl.href = url; dl.download = a.filename; dl.title = "Baixar";
+    dl.append(icon("download", 14));
+    cell.append(dl);
+    grid.append(cell);
+  });
+  return grid;
+}
+
+function openLightbox(atts, start) {
+  const images = atts.filter((a) => a.kind === "image");
+  let idx = Math.max(0, images.findIndex((a) => a === atts[start]));
+  const back = el("div", "lightbox");
+  const img = el("img");
+  const caption = el("div", "lb-caption");
+  const show = () => {
+    img.src = state.api.attachmentUrl(images[idx]);
+    caption.textContent = `${images[idx].filename}  ·  ${idx + 1}/${images.length}`;
+  };
+  const nav = (d) => { idx = (idx + d + images.length) % images.length; show(); };
+  back.append(img, caption);
+  if (images.length > 1) {
+    const prev = el("button", "lb-nav prev"); prev.append(icon("arrowLeft", 22));
+    const next = el("button", "lb-nav next"); next.append(icon("chevronRight", 22));
+    prev.addEventListener("click", (e) => { e.stopPropagation(); nav(-1); });
+    next.addEventListener("click", (e) => { e.stopPropagation(); nav(1); });
+    back.append(prev, next);
+  }
+  const onKey = (e) => {
+    if (e.key === "Escape") close();
+    if (e.key === "ArrowLeft") nav(-1);
+    if (e.key === "ArrowRight") nav(1);
+  };
+  const close = () => { back.remove(); window.removeEventListener("keydown", onKey); };
+  back.addEventListener("click", (e) => { if (e.target === back) close(); });
+  window.addEventListener("keydown", onKey);
+  show();
+  document.body.append(back);
 }
 
 function startEdit(node, m) {
@@ -885,20 +946,128 @@ function markUnread(channelId, isMention) {
     row.append(el("span", "unread" + (isMention ? " mention" : ""), isMention ? "@" : ""));
 }
 
-$("composer").addEventListener("submit", (e) => {
+$("composer").addEventListener("submit", async (e) => {
   e.preventDefault();
   if (mentionPop && mentionPop.visible) return;
   const input = $("composer-input");
   const text = input.value.trim();
-  if (!text || !state.activeChannelId) return;
-  state.gw.sendMessage(state.activeChannelId, text);
+  const cid = state.activeChannelId;
+  if (!cid || (!text && !state.pending.length)) return;
+
+  if (state.pending.length) {
+    const files = state.pending.map((p) => p.file);
+    setPendingUploading(true);
+    let atts;
+    try {
+      atts = await state.api.uploadAttachments(cid, files, (p) => setPendingProgress(p));
+    } catch (err) {
+      toast(err.message, "error");
+      setPendingUploading(false);
+      return;
+    }
+    state.gw.sendMessage(cid, text, atts.map((a) => a.id));
+    clearPending();
+  } else {
+    state.gw.sendMessage(cid, text);
+  }
   input.value = "";
+  updateSendEnabled();
   closeMentionPop();
+});
+
+// ---------------- anexos ----------------
+state.pending = [];
+
+function updateSendEnabled() {
+  const has = !!$("composer-input").value.trim() || state.pending.length > 0;
+  $("composer").querySelector(".send-btn").disabled = $("composer-input").disabled || !has;
+}
+
+function addPendingFiles(fileList) {
+  if ($("attach-btn").disabled) return;
+  const files = [...fileList].filter((f) => /^(image|video)\//.test(f.type));
+  for (const f of files) {
+    if (state.pending.length >= 10) { toast("Máximo de 10 arquivos", "error"); break; }
+    if (f.size > 50 * 1024 * 1024) { toast(`${f.name}: maior que 50 MB`, "error"); continue; }
+    state.pending.push({ file: f, url: URL.createObjectURL(f) });
+  }
+  renderPendingStrip();
+  updateSendEnabled();
+}
+
+function removePending(i) {
+  URL.revokeObjectURL(state.pending[i]?.url);
+  state.pending.splice(i, 1);
+  renderPendingStrip();
+  updateSendEnabled();
+}
+
+function clearPending() {
+  state.pending.forEach((p) => URL.revokeObjectURL(p.url));
+  state.pending = [];
+  renderPendingStrip();
+  updateSendEnabled();
+}
+
+let _uploadPct = 0, _uploading = false;
+function setPendingUploading(v) { _uploading = v; if (!v) _uploadPct = 0; renderPendingStrip(); }
+function setPendingProgress(p) { _uploadPct = p; renderPendingStrip(); }
+
+function renderPendingStrip() {
+  const strip = $("pending-strip");
+  strip.hidden = state.pending.length === 0;
+  strip.replaceChildren();
+  state.pending.forEach((p, i) => {
+    const chip = el("div", "pending-chip");
+    if (p.file.type.startsWith("image/")) {
+      const img = el("img"); img.src = p.url; chip.append(img);
+    } else {
+      const v = el("video"); v.src = p.url; v.muted = true; chip.append(v);
+      chip.append(icon("play", 18));
+    }
+    if (_uploading) {
+      const bar = el("div", "chip-progress");
+      bar.style.width = Math.round(_uploadPct * 100) + "%";
+      chip.append(bar);
+    } else {
+      const rm = el("button", "chip-x");
+      rm.append(icon("x", 12));
+      rm.addEventListener("click", () => removePending(i));
+      chip.append(rm);
+    }
+    strip.append(chip);
+  });
+}
+
+$("attach-btn").addEventListener("click", () => $("attach-input").click());
+$("attach-input").addEventListener("change", (e) => { addPendingFiles(e.target.files); e.target.value = ""; });
+
+$("composer-input").addEventListener("paste", (e) => {
+  const files = [...(e.clipboardData?.files || [])];
+  if (files.length) { e.preventDefault(); addPendingFiles(files); }
+});
+
+// drag & drop na área de conversa
+const content = document.querySelector(".content");
+let dragDepth = 0;
+content.addEventListener("dragenter", (e) => {
+  if (!e.dataTransfer?.types.includes("Files") || $("attach-btn").disabled) return;
+  dragDepth++;
+  $("drop-hint").hidden = false;
+});
+content.addEventListener("dragover", (e) => { if (e.dataTransfer?.types.includes("Files")) e.preventDefault(); });
+content.addEventListener("dragleave", () => { if (--dragDepth <= 0) { dragDepth = 0; $("drop-hint").hidden = true; } });
+content.addEventListener("drop", (e) => {
+  e.preventDefault();
+  dragDepth = 0;
+  $("drop-hint").hidden = true;
+  if (e.dataTransfer?.files?.length) addPendingFiles(e.dataTransfer.files);
 });
 
 let typingSent = 0;
 let typingClear = null;
 $("composer-input").addEventListener("input", () => {
+  updateSendEnabled();
   const now = Date.now();
   if (state.activeChannelId && now - typingSent > 2000) {
     state.gw.typing(state.activeChannelId);

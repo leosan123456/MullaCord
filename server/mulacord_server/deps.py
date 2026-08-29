@@ -2,16 +2,21 @@
 from __future__ import annotations
 
 import aiosqlite
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, Header, HTTPException, Query, status
 
 from .database import db
 from .security import decode_token
 
 
-async def get_current_user(authorization: str = Header(default="")) -> aiosqlite.Row:
-    if not authorization.lower().startswith("bearer "):
+async def get_current_user(
+    authorization: str = Header(default=""),
+    t: str | None = Query(default=None),
+) -> aiosqlite.Row:
+    # header `Authorization: Bearer ...` OU `?t=` (para <img>/<video> que não mandam header)
+    token = authorization[7:].strip() if authorization.lower().startswith("bearer ") else (t or "")
+    if not token:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Token ausente")
-    user_id = decode_token(authorization[7:].strip())
+    user_id = decode_token(token)
     if user_id is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Token inválido ou expirado")
     row = await db.fetchone("SELECT * FROM users WHERE id = ?", (user_id,))

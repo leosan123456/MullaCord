@@ -138,9 +138,10 @@ async def gateway(ws: WebSocket) -> None:
 
             elif op == "send_message":
                 cid, content = msg.get("channel_id"), (msg.get("content") or "").strip()
-                if not content or not await _can(cid, user_id, P.SEND_MESSAGES):
+                att_ids = [str(a) for a in (msg.get("attachment_ids") or [])][:10]
+                if (not content and not att_ids) or not await _can(cid, user_id, P.SEND_MESSAGES):
                     continue
-                out = await create_message(cid, user_id, content[:4000])
+                out = await create_message(cid, user_id, content[:4000], att_ids)
                 await manager.broadcast_channel(cid, {"t": "message_create", "message": out})
 
             elif op == "typing":

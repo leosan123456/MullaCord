@@ -59,6 +59,8 @@ vira o dono.
 ## 4. Conversar, voz e tela
 
 - DMs e grupos no botão 🏠; servidores na barra à esquerda.
+- **Imagens e vídeos**: botão de clipe no campo de mensagem, ou arraste o arquivo
+  pra janela, ou cole (Ctrl+V). Clique numa imagem pra ver em tela cheia.
 - Canal de voz: clique no 🔊 (ou **Entrar na call** numa DM). O Windows pede
   permissão de microfone na 1ª vez.
 - **Tela**: botão dentro da chamada → escolha monitor/janela.

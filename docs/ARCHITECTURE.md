@@ -60,7 +60,8 @@ simétrico pode falhar (fase futura).
 | `channel_members` | channel_id, user_id — **só para dm/group** |
 | `channel_overwrites` | channel_id, target_type (`role`/`member`), target_id, **allow**, **deny** |
 | `invites` | code, guild_id, creator_id, uses, max_uses, expires_at |
-| `messages` | id, channel_id, author_id, content, created_at |
+| `messages` | id, channel_id, author_id, content, edited_at, created_at |
+| `attachments` | id (token), message_id (null até enviar), channel_id, uploader_id, filename, stored_name, content_type, size, width, height, kind (`image`/`video`) |
 
 - **DM**: canal `dm` com 2 membros, criado sob demanda entre amigos (usa `channel_members`).
 - **Servidor (guild)**: um backend hospeda vários. Ao criar, ganha `@everyone` +
@@ -99,7 +100,7 @@ Hierarquia: só mexe em cargo/membro de posição abaixo da sua (salvo dono).
 |---|---|---|
 | `identify` | `token` | autentica a conexão (obrigatório, primeiro) |
 | `heartbeat` | — | keep-alive (responde `heartbeat_ack`) |
-| `send_message` | `channel_id`, `content` | cria mensagem (checa `SEND_MESSAGES`) |
+| `send_message` | `channel_id`, `content`, `attachment_ids?` | cria mensagem (checa `SEND_MESSAGES`) |
 | `typing` | `channel_id` | avisa "digitando" |
 
 > Editar/apagar mensagem e editar perfil são só REST (`PATCH`/`DELETE
@@ -108,6 +109,19 @@ Hierarquia: só mexe em cargo/membro de posição abaixo da sua (salvo dono).
 
 O `heartbeat` do cliente leva `ts` (timestamp); o `heartbeat_ack` devolve o mesmo
 `ts` pro app medir latência.
+
+## Anexos (imagens e vídeos)
+
+Fluxo em 2 passos: `POST /api/channels/{c}/attachments` (multipart, checa
+`ATTACH_FILES`, só `image/*` e `video/*`, ≤50 MB, ≤10 por mensagem) grava em
+`server/data/uploads/<token><ext>` e devolve `[{id, url, width, height, kind, …}]`
+com `message_id` nulo. Aí o `send_message` (gateway ou REST) manda `attachment_ids`
+e o servidor vincula os que forem do próprio autor, do mesmo canal e ainda soltos.
+`GET /api/attachments/{id}/{filename}?t=<jwt>` serve o arquivo (o `?t=` existe porque
+`<img>`/`<video>` não mandam header; checa `VIEW_CHANNEL`). Dimensão de imagem é lida
+do cabeçalho em `media.py` (PNG/JPEG/GIF/WebP/BMP, sem Pillow). Apagar a mensagem
+apaga os arquivos. Cliente: botão de clipe, arrastar-soltar e colar (Ctrl+V);
+grade de miniaturas na mensagem + lightbox com navegação.
 | `rtc_join` | `channel_id` | entra no canal de voz (checa `CONNECT`; 1 por guild) |
 | `rtc_leave` | `channel_id` | sai da call |
 | `rtc_signal` | `channel_id`, `to_user_id`, `data` | repassa SDP/ICE opaco a um peer |

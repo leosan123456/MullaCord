@@ -12,6 +12,8 @@ entram pela descoberta na rede local ou por um link `mula://`.
 - **Controles de áudio**: seletor de microfone/saída, modo (sempre ativo / por voz /
   push-to-talk), volume por pessoa, mudo, ensurdecer, medidor de nível
 - **Mensagens**: editar, apagar, menções `@usuario` / `@cargo` com autocomplete
+- **Anexos**: enviar imagens e vídeos (botão de clipe, arrastar-soltar, colar),
+  grade de miniaturas + visualizador em tela cheia
 - **Perfil**: nome de exibição e avatar
 - **Interface**: marca Mulla Cord (preto + amarelo, fonte Satoshi), tela de loading
   animada, fundo em gradiente com parallax, tema claro/escuro, janela sem moldura,
@@ -75,6 +77,7 @@ Teste rápido do backend (com o servidor no ar, noutro terminal):
 .\.venv\Scripts\python.exe scripts\smoke_guilds.py     # servidores, permissões, canal de voz
 .\.venv\Scripts\python.exe scripts\smoke_messages.py   # perfil/avatar, editar/apagar mensagem
 .\.venv\Scripts\python.exe scripts\smoke_discovery.py  # descoberta LAN por UDP + /api/info
+.\.venv\Scripts\python.exe scripts\smoke_attachments.py # upload de imagem, mensagem com anexo, download
 ```
 
 Amigos na mesma rede aparecem automaticamente no login. De fora da LAN, o host

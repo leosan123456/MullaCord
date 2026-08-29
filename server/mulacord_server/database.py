@@ -118,6 +118,21 @@ CREATE TABLE IF NOT EXISTS messages (
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS attachments (
+    id           TEXT PRIMARY KEY,
+    message_id   INTEGER REFERENCES messages(id) ON DELETE CASCADE,
+    channel_id   INTEGER NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+    uploader_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    filename     TEXT NOT NULL,
+    stored_name  TEXT NOT NULL,
+    content_type TEXT NOT NULL,
+    size         INTEGER NOT NULL,
+    width        INTEGER,
+    height       INTEGER,
+    kind         TEXT NOT NULL,           -- image | video | file
+    created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_messages_channel ON messages(channel_id, id);
 CREATE INDEX IF NOT EXISTS idx_members_user ON channel_members(user_id);
 CREATE INDEX IF NOT EXISTS idx_channels_guild ON channels(guild_id);
@@ -125,6 +140,7 @@ CREATE INDEX IF NOT EXISTS idx_guild_members_user ON guild_members(user_id);
 CREATE INDEX IF NOT EXISTS idx_roles_guild ON roles(guild_id);
 CREATE INDEX IF NOT EXISTS idx_member_roles ON member_roles(guild_id, user_id);
 CREATE INDEX IF NOT EXISTS idx_overwrites_channel ON channel_overwrites(channel_id);
+CREATE INDEX IF NOT EXISTS idx_attachments_message ON attachments(message_id);
 """
 
 
