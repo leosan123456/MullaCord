@@ -25,6 +25,21 @@ entram pela descoberta na rede local ou por um link `mula://`.
 
 > ⚠️ O schema mudou na fase 2. Apague `server/data/mulacord.sqlite3*` se vinha da fase 1.
 
+## Baixar (Windows 64-bit)
+
+Prontos para usar, em [`releases/`](releases/) — nenhum Python/Node necessário
+(o servidor já vem embutido):
+
+| Arquivo | O que faz |
+|---|---|
+| [`MullaCord-Setup-0.1.0.exe`](releases/MullaCord-Setup-0.1.0.exe) | **Instalador rápido** — 1 clique, instala e cria os atalhos "Mulla Cord" (área de trabalho + menu Iniciar) |
+| [`MullaCord-portable-0.1.0.exe`](releases/MullaCord-portable-0.1.0.exe) | **Portátil** — dois cliques e abre, sem instalar nada |
+
+> SmartScreen ("app não reconhecido"): os `.exe` não têm assinatura digital paga —
+> **Mais informações → Executar assim mesmo**.
+
+Passo a passo para novos usuários: [docs/INSTALL.md](docs/INSTALL.md).
+
 ## Estrutura
 
 ```
@@ -87,12 +102,16 @@ cd server
 .\.venv\Scripts\python.exe -m pip install -r requirements-build.txt   # PyInstaller
 
 cd ..\desktop
-npm run dist      # empacota o servidor (PyInstaller) + gera o instalador NSIS
+npm run dist      # empacota o servidor + gera instalador + portátil
 ```
 
-Saída: `desktop/dist-installer/Mulla Cord Setup <versão>.exe` — inclui o app e o
-servidor. Ao instalar, cria os atalhos **"Mulla Cord"** na área de trabalho e no
-menu Iniciar (com o ícone da marca). O instalador não é assinado (sem certificado).
+Saída em `desktop/dist-installer/`:
+
+- `MullaCord-Setup-<versão>.exe` — instalador NSIS de 1 clique (cria os atalhos "Mulla Cord")
+- `MullaCord-portable-<versão>.exe` — executável portátil, sem instalação
+
+Os dois já incluem o app **e** o servidor. Não são assinados (sem certificado pago).
+Depois de gerar, copie os `.exe` para `releases/` para versionar (usam Git LFS).
 
 ## Documentação
 

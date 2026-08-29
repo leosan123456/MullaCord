@@ -20,11 +20,14 @@ servidor no PC; o app conecta ao servidor de um amigo — ou ao seu.
 | Para conversar | só o app |
 | Para hospedar | liberar a porta 8787 |
 
-1. Baixe `Mulla Cord Setup 0.1.0.exe`.
-2. Dois cliques para instalar; escolha a pasta e avance.
-3. Um atalho **Mulla Cord** aparece na área de trabalho e no menu Iniciar.
+Baixe da pasta [`releases/`](../releases/) do repositório:
 
-> **SmartScreen** ("aplicativo não reconhecido"): o instalador não tem assinatura
+| Opção | Arquivo | Como usar |
+|---|---|---|
+| **Instalar** | `MullaCord-Setup-0.1.0.exe` | Dois cliques → instala em segundos e cria o atalho **Mulla Cord** na área de trabalho e no menu Iniciar. |
+| **Portátil** | `MullaCord-portable-0.1.0.exe` | Dois cliques e o app abre. Nada é instalado; pode deixar num pen drive. |
+
+> **SmartScreen** ("aplicativo não reconhecido"): os `.exe` não têm assinatura
 > digital paga. Clique em **Mais informações → Executar assim mesmo**.
 
 O app já traz o servidor embutido — não precisa instalar Python nem nada.
@@ -110,7 +113,8 @@ npm start
 cd ..\server
 .\.venv\Scripts\python.exe -m pip install -r requirements-build.txt
 cd ..\desktop
-npm run dist       # -> desktop/dist-installer/Mulla Cord Setup <versão>.exe
+npm run dist       # -> desktop/dist-installer/MullaCord-Setup-<versão>.exe
+                   #    e MullaCord-portable-<versão>.exe
 ```
 
 ## 8. Problemas comuns

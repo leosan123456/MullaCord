@@ -42,26 +42,33 @@
     ],
     "protocols": [
       {
-        "name": "Mulacord",
+        "name": "Mulla Cord",
         "schemes": ["mula"]
       }
     ],
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64"] }
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
       ],
       "icon": "build/icon.png",
       "signAndEditExecutable": false
     },
+    "portable": {
+      "artifactName": "MullaCord-portable-${version}.exe",
+      "unpackDirName": "MullaCord",
+      "requestExecutionLevel": "user"
+    },
     "nsis": {
-      "oneClick": false,
+      "oneClick": true,
       "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Mulacord",
-      "runAfterFinish": false,
-      "include": "build/installer.nsh"
+      "shortcutName": "Mulla Cord",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
+      "include": "build/installer.nsh",
+      "artifactName": "MullaCord-Setup-${version}.exe"
     },
     "mac": {
       "target": "dmg",
