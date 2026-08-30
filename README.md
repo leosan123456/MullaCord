@@ -39,8 +39,8 @@ Prontos para usar, em [`releases/`](releases/) — nenhum Python/Node necessári
 
 | Arquivo | O que faz |
 |---|---|
-| [`MullaCord-Setup-0.1.0.exe`](releases/MullaCord-Setup-0.1.0.exe) | **Instalador rápido** — 1 clique, instala e cria os atalhos "Mulla Cord" (área de trabalho + menu Iniciar) |
-| [`MullaCord-portable-0.1.0.exe`](releases/MullaCord-portable-0.1.0.exe) | **Portátil** — dois cliques e abre, sem instalar nada |
+| [`MullaCord-Setup-0.2.0.exe`](releases/MullaCord-Setup-0.2.0.exe) | **Instalador rápido** — 1 clique, instala e cria os atalhos "Mulla Cord" (área de trabalho + menu Iniciar) |
+| [`MullaCord-portable-0.2.0.exe`](releases/MullaCord-portable-0.2.0.exe) | **Portátil** — dois cliques e abre, sem instalar nada |
 
 > SmartScreen ("app não reconhecido"): os `.exe` não têm assinatura digital paga —
 > **Mais informações → Executar assim mesmo**.
@@ -127,3 +127,4 @@ Depois de gerar, copie os `.exe` para `releases/` para versionar (usam Git LFS).
 
 - [docs/INSTALL.md](docs/INSTALL.md) — manual de instalação e primeiros passos (novos usuários)
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — visão geral, esquema de dados, protocolo do gateway
+- [CHANGELOG.md](CHANGELOG.md) — o que mudou em cada versão

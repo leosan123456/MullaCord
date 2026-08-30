@@ -24,8 +24,8 @@ Baixe da pasta [`releases/`](../releases/) do repositório:
 
 | Opção | Arquivo | Como usar |
 |---|---|---|
-| **Instalar** | `MullaCord-Setup-0.1.0.exe` | Dois cliques → instala em segundos e cria o atalho **Mulla Cord** na área de trabalho e no menu Iniciar. |
-| **Portátil** | `MullaCord-portable-0.1.0.exe` | Dois cliques e o app abre. Nada é instalado; pode deixar num pen drive. |
+| **Instalar** | `MullaCord-Setup-0.2.0.exe` | Dois cliques → instala em segundos e cria o atalho **Mulla Cord** na área de trabalho e no menu Iniciar. |
+| **Portátil** | `MullaCord-portable-0.2.0.exe` | Dois cliques e o app abre. Nada é instalado; pode deixar num pen drive. |
 
 > **SmartScreen** ("aplicativo não reconhecido"): os `.exe` não têm assinatura
 > digital paga. Clique em **Mais informações → Executar assim mesmo**.
