@@ -4,6 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Query, status
 
 from ..database import db
+from ..replication import next_id
 from ..deps import CurrentUser
 from ..guilds_service import channel_perms
 from ..permissions import P, has
@@ -128,11 +129,11 @@ async def delete_message(channel_id: int, message_id: int, user=CurrentUser) -> 
 async def create_message(
     channel_id: int, author_id: int, content: str, attachment_ids: list[str] | None = None
 ) -> dict:
-    cur = await db.execute(
-        "INSERT INTO messages (channel_id, author_id, content) VALUES (?, ?, ?)",
-        (channel_id, author_id, content),
+    mid = await next_id()
+    await db.execute(
+        "INSERT INTO messages (id, channel_id, author_id, content) VALUES (?, ?, ?, ?)",
+        (mid, channel_id, author_id, content),
     )
-    mid = cur.lastrowid
 
     if attachment_ids:
         q = ",".join("?" * len(attachment_ids))

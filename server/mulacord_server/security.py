@@ -9,7 +9,7 @@ from typing import Optional
 
 import jwt
 
-from .config import JWT_ALGORITHM, SECRET_KEY, TOKEN_TTL_SECONDS
+from .config import JWT_ALGORITHM, TOKEN_KEY, TOKEN_TTL_SECONDS
 
 _PBKDF2_ROUNDS = 240_000
 
@@ -36,12 +36,12 @@ def verify_password(password: str, stored: str) -> bool:
 def create_token(user_id: int) -> str:
     now = int(time.time())
     payload = {"sub": str(user_id), "iat": now, "exp": now + TOKEN_TTL_SECONDS}
-    return jwt.encode(payload, SECRET_KEY, algorithm=JWT_ALGORITHM)
+    return jwt.encode(payload, TOKEN_KEY, algorithm=JWT_ALGORITHM)
 
 
 def decode_token(token: str) -> Optional[int]:
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        payload = jwt.decode(token, TOKEN_KEY, algorithms=[JWT_ALGORITHM])
         return int(payload["sub"])
     except (jwt.InvalidTokenError, KeyError, ValueError):
         return None

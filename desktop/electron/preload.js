@@ -26,6 +26,19 @@ contextBridge.exposeInMainWorld("mula", {
     onState: (cb) => ipcRenderer.on("host-state", (_e, s) => cb(s)),
   },
 
+  community: {
+    get: () => ipcRenderer.invoke("community:get"),
+    create: (opts) => ipcRenderer.invoke("community:create", opts),
+    join: (invite) => ipcRenderer.invoke("community:join", invite),
+    update: (patch) => ipcRenderer.invoke("community:update", patch),
+    invite: () => ipcRenderer.invoke("community:invite"),
+  },
+
+  prefs: {
+    get: () => ipcRenderer.invoke("prefs:get"),
+    set: (patch) => ipcRenderer.invoke("prefs:set", patch),
+  },
+
   game: {
     configure: (cfg) => ipcRenderer.invoke("game:configure", cfg),
     candidates: () => ipcRenderer.invoke("game:candidates"),

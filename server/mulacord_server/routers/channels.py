@@ -4,6 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, status
 
 from ..database import db
+from ..replication import next_id
 from ..deps import CurrentUser, require_member, serialize_channel
 from ..realtime.manager import manager
 from ..schemas import CreateGroupIn, OpenDMIn
@@ -60,8 +61,8 @@ async def open_dm(body: OpenDMIn, user=CurrentUser) -> dict:
     if existing:
         return await serialize_channel(existing)
 
-    cur = await db.execute("INSERT INTO channels (type) VALUES ('dm')", ())
-    channel_id = cur.lastrowid
+    channel_id = await next_id()
+    await db.execute("INSERT INTO channels (id, type) VALUES (?, 'dm')", (channel_id,))
     await db.execute(
         "INSERT INTO channel_members (channel_id, user_id) VALUES (?, ?), (?, ?)",
         (channel_id, user["id"], channel_id, body.user_id),
@@ -78,11 +79,11 @@ async def create_group(body: CreateGroupIn, user=CurrentUser) -> dict:
         if mid != user["id"] and not await _are_friends(user["id"], mid):
             raise HTTPException(status.HTTP_403_FORBIDDEN, f"Usuário {mid} não é seu amigo")
 
-    cur = await db.execute(
-        "INSERT INTO channels (type, name, owner_id) VALUES ('group', ?, ?)",
-        (body.name, user["id"]),
+    channel_id = await next_id()
+    await db.execute(
+        "INSERT INTO channels (id, type, name, owner_id) VALUES (?, 'group', ?, ?)",
+        (channel_id, body.name, user["id"]),
     )
-    channel_id = cur.lastrowid
     for mid in member_ids:
         await db.execute(
             "INSERT INTO channel_members (channel_id, user_id) VALUES (?, ?)",

@@ -1,49 +1,85 @@
-# Arquitetura do Mulacord
+# Arquitetura do Mulla Cord
 
-## Visão geral
+## Visão geral — enxame de réplicas
 
 ```
-┌─────────────┐   REST (contas, histórico)   ┌────────────────────┐
-│  App        │ ───────────────────────────▶ │  Servidor (host)   │
-│  Electron   │                              │  FastAPI + SQLite  │
-│  (renderer) │ ◀──── WebSocket /gateway ───▶ │  (self-hosted)     │
-└─────────────┘   eventos em tempo real       └────────────────────┘
-       │                                              │
-       │   mídia P2P (voz + tela) — WebRTC             │ só faz signaling
-       └──────────────────────────────────────────────┘
+   PC da Ana                 PC do Beto                PC "semente" (bandeja)
+┌─────────────┐           ┌─────────────┐            ┌─────────────┐
+│ app + nó A  │◀── sync ─▶│ app + nó B  │◀── sync ──▶│    nó C     │
+│ SQLite (⟳)  │   gossip   │ SQLite (⟳)  │   gossip    │ SQLite (⟳)  │
+└─────────────┘           └─────────────┘            └─────────────┘
+   ▲ cliente local            ▲ cliente local
 ```
 
-- **Servidor**: cada pessoa roda o seu (`server/`). Guarda contas, amizades, canais e
-  mensagens num arquivo SQLite (`server/data/mulacord.sqlite3`). Sem serviço em nuvem.
-- **App**: Electron. O `renderer` fala REST + WebSocket; o `main process` só cuida de
-  janela e da captura de tela (`desktopCapturer`).
-- **Voz/tela**: WebRTC em malha (mesh). O servidor apenas repassa SDP/ICE entre os
-  pares. A mídia trafega direto de um cliente para o outro. Bom até ~4-5 pessoas por
-  call; acima disso vale migrar para um SFU.
+- **Sem nuvem, sem "hospedar"**: quando o app abre, ele sobe um **nó** em segundo
+  plano (`main.js` → `startHost()` no `whenReady`). O cliente fala sempre com o
+  **nó local** (`127.0.0.1:8787`) — leitura instantânea.
+- **Comunidade**: um grupo lógico de nós que compartilham tudo, identificado por
+  `community_id` (+ segredo opcional). O Electron guarda a comunidade atual em
+  `userData/community.json`; cada comunidade tem seu próprio data dir
+  (`userData/communities/<id>/`).
+- **Réplica completa**: todo nó tem contas, amigos, canais, cargos, mensagens e
+  anexos inteiros. Os nós trocam um log de operações entre si e o estado converge.
+- **Coordenador** (só pra quem o cliente conecta quando o nó local ainda não
+  sincronizou): eleito por `(node_priority desc, started_at asc, node_id asc)`.
+- **Voz/tela**: WebRTC em malha (mesh). O nó só repassa SDP/ICE. Bom até ~4-5 por call.
 
 ## Conectividade e descoberta
 
-Cada pessoa hospeda o próprio backend (porta `8787`). O app se conecta a um servidor
-assim:
+- **Nó local sempre no ar** — sobe no launch; fica vivo na bandeja se
+  "Manter no ar em segundo plano" estiver ligado (semente do enxame).
+- **Descoberta na LAN** — responder UDP em `0.0.0.0:8788` (`discovery.py`); o beacon
+  leva `community_id`, `community_name`, `node_priority`, `started_at`, `public_host`.
+  O Electron (`dgram`) faz broadcast de `MULACORD_DISCOVER <nonce>`.
+- **Primeiro uso** (`#auth-welcome`): criar comunidade / entrar numa achada na LAN /
+  colar convite `mula://join/<base64url(json)>` (`{id,name,secret,addrs}`).
+- **Sessão** — salva por comunidade em `localStorage['mula.session.<id>']`
+  `{token, url}`; token é assinado com a chave da comunidade, então vale em qualquer nó.
+- **UPnP** (best-effort, sem dependência) — `main.js` faz SSDP + SOAP `AddPortMapping`
+  no roteador; se der certo, grava `publicHost` = `<ip-externo>:8787` e reinicia o nó.
+- **Peers de partida** — `MULACORD_BOOTSTRAP_PEERS` (convite + `publicHost` + IPs de
+  LAN da mesma comunidade); depois os nós aprendem peers-de-peers pela `/sync`.
+- **Reconexão** — backoff exponencial (1s→15s) + botão "tentar agora"; após entrar
+  por um peer, `migrateToLocalWhenReady()` troca pro nó local quando ele sincroniza.
 
-- **Descoberta na LAN** — responder UDP em `0.0.0.0:8788` (`discovery.py`). O app
-  (Electron `main.js`, via `dgram`) faz broadcast de `MULACORD_DISCOVER <nonce>` e
-  lista os servidores que respondem (nome, IP, nº de membros, `server_id`).
-- **Servidores conhecidos** — o app guarda `[{url, name, server_id, token}]` em
-  `localStorage['mula.servers']`; a sessão salva reconecta sem pedir senha.
-- **Link `mula://host:porta`** — registrado como protocolo (`setAsDefaultProtocolClient`);
-  clicar num link abre o app já apontando pro servidor. `mula://` ↔ `http://`.
-- **Modo host** — o app sobe/mata o servidor local (bundlado ou `run.py` em dev) via
-  IPC (`window.mula.host`), mostra os links compartilháveis (127.0.0.1 + cada IP de LAN)
-  e o log ao vivo.
-- **Latência** — o heartbeat do gateway ecoa o timestamp do cliente; o app mostra o RTT.
-- **Reconexão** — backoff exponencial (1s→15s) + botão "tentar agora".
+`GET /api/info` → `{ service, server_id, node_id, name, version, members,
+open_registration, discovery_port, community_id, community_name, node_priority,
+started_at, public_host }`.
 
-De fora da LAN ainda é preciso port forwarding no roteador do host (o link vira
-`mula://<ip-público>:8787`). STUN público (Google) ajuda o WebRTC; sem TURN, NAT
-simétrico pode falhar (fase futura).
+## Replicação em enxame (`replication.py`)
 
-`GET /api/info` → `{ server_id, name, version, members, open_registration, discovery_port }`.
+**Log de operações (`oplog`)** — na `setup()` o nó cria (recriando a cada boot, com
+o `NODE_ID` embutido) triggers `AFTER INSERT/UPDATE/DELETE` em cada tabela
+sincronizável. Cada trigger grava uma linha no `oplog`
+`{origin, lamport, table_name, op, pk (json), data (json da linha), ts_ms}`.
+Um guard (`repl_meta.apply_guard`) desliga os triggers durante o *apply*.
+
+**IDs por faixa de nó** — não dá pra usar `AUTOINCREMENT` (depois que uma linha de
+id alto de outro nó replica, `MAX(rowid)` local "pula" e colide). `next_id()` =
+`_node_band()` (hash do nó → 1 de ~500k faixas × 100M) + contador compartilhado
+(`repl_meta.idcounter`, atômico via `UPDATE … RETURNING`). Todo `INSERT` passa `id`
+explícito. Id máx ~5e13, abaixo do limite seguro do JS (2^53).
+
+**Sincronização** — bidirecional, `POST /api/replica/sync`
+`{since:{origin→lamport}, self, peers}` → `{events, vector, peers, community}`,
+a cada ~8 s (`_gossip_loop`). Caminho rápido: `_push_loop` varre eventos locais
+novos a cada 0,5 s e faz `POST /api/replica/push` pros peers. Auth: header
+`X-Comm-Key` = `config.COMMUNITY_KEY` (HMAC do `community_id` com o segredo).
+
+**Apply (LWW)** — segura `db.write_lock` o lote inteiro (senão uma escrita local
+escapa do oplog entre `await`s); ordena por `(ts_ms, origin, lamport)`; pra cada
+evento: ignora duplicado, grava no oplog, e só **materializa** (upsert/delete na
+tabela real) se for o evento mais novo daquela linha; 2 passadas extras cobrem
+"filho antes do pai". Depois dispara os eventos de gateway
+(`_dispatch_realtime`: `message_create/update/delete`, `friend_request/accepted`,
+`channel_create` de DM, e um `guild_update` grosso por guild afetada).
+
+**Compactação** — `_prune_oplog()` (a cada ~5 min) apaga eventos superados com mais
+de 10 min: pra LWW basta 1 evento por linha (o mais novo) sobreviver.
+
+**Cliente sempre local** — `community.js resolveActive()` prefere o nó local
+(`127.0.0.1`); só usa um peer com `preferRemote:true` logo após entrar numa
+comunidade, enquanto o nó local ainda enche.
 
 ## Esquema de dados (SQLite)
 
@@ -92,10 +128,14 @@ Hierarquia: só mexe em cargo/membro de posição abaixo da sua (salvo dono).
 
 ## Autenticação
 
-- Senha: PBKDF2-SHA256 (240k rounds), stdlib. Sem dependência de hashing nativa.
-- Token: JWT HS256, segredo em `server/data/.secret_key` (gerado no 1º boot).
+- Senha: PBKDF2-SHA256 (240k rounds), stdlib. O hash replica como string — login
+  funciona em qualquer nó.
+- Token: JWT HS256 assinado com `config.TOKEN_KEY` = HMAC derivado do
+  `community_id` + segredo (**não** do `.secret_key` por-nó) → um token vale em
+  todos os nós da comunidade.
 - REST: header `Authorization: Bearer <token>`.
 - Gateway: primeira mensagem `{"op":"identify","token":"<token>"}`.
+- Entre nós: header `X-Comm-Key` = `config.COMMUNITY_KEY` nas rotas `/api/replica/*`.
 
 ## Protocolo do gateway (WebSocket `/gateway`, JSON)
 
@@ -211,6 +251,15 @@ volume por pessoa. `rtc.js` (`VoiceSession`) aplica em tempo real:
 - **Volume por pessoa**: slider → `audioEl.volume` (0..1).
 - Painel de configurações (`settings.js`) com medidor de nível ao vivo.
 
+## Bandeja / semente
+
+`main.js` cria um `Tray`; `userData/prefs.json` guarda
+`{ background, openAtLogin }`. Com `background` ligado, fechar a janela só
+esconde (`win.on("close")` → `preventDefault` + `hide`) e `window-all-closed` não
+mata o nó — o PC segue no enxame. `openAtLogin` usa
+`app.setLoginItemSettings({ openAtLogin, args:["--background"] })`; com `--background`
+o app sobe sem janela. IPC: `prefs:get` / `prefs:set` (`window.mula.prefs`).
+
 ## Empacotamento
 
 - **Servidor** → PyInstaller (`server/mulacord-server.spec`, onedir):
@@ -241,9 +290,14 @@ volume por pessoa. `rtc.js` (`VoiceSession`) aplica em tempo real:
 4. Frontend com identidade própria (âmbar, claro/escuro, janela sem moldura, ícones SVG). ✅
 5. Descoberta LAN + servidores conhecidos + link `mula://` + modo host + latência;
    instalador NSIS com app + servidor bundlado. ✅
-6. Anexos de arquivo (`server/data/uploads/`), reordenar canais (drag), banir membros.
-7. TURN embutido (`aiortc` ou `coturn`) para NAT simétrico; relay de rendezvous.
-8. Migração opcional para SFU quando calls passarem de ~5 pessoas.
+6. Anexos de imagem/vídeo, status de jogo, marca "Mulla Cord" (Satoshi + amarelo). ✅
+7. **Modelo de conexão v2**: nó local sempre no ar (sem "hospedar"), comunidade +
+   descoberta LAN + coordenador eleito, primeiro uso criar/entrar. ✅ (v1.3)
+8. **Enxame auto-alimentado**: oplog por triggers, gossip + push, IDs por faixa,
+   token da comunidade, realtime na réplica, bandeja/semente, UPnP best-effort. ✅ (v1.3)
+9. Barra de progresso ao entrar numa comunidade grande; relay de rendezvous +
+   TURN embutido para NAT simétrico; SFU quando calls passarem de ~5 pessoas.
 
-> **Migração de banco**: a fase 2 mudou o schema. Bancos da fase 1 não migram
-> automaticamente — apague `server/data/mulacord.sqlite3*` e recomece.
+> **Migração**: bancos anteriores à 1.3 não têm oplog — o nó faz *backfill* no
+> primeiro boot da 1.3. Em caso de estado estranho, apague o data dir da comunidade
+> (`%APPDATA%/Mulla Cord/communities/<id>/`) e recomece.

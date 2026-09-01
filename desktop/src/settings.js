@@ -26,6 +26,14 @@ function labeled(text, control) {
   return l;
 }
 
+function toggleRow(text, checked, onChange) {
+  const row = el("label", "toggle-row");
+  const cb = el("input"); cb.type = "checkbox"; cb.checked = !!checked;
+  cb.addEventListener("change", () => onChange(cb.checked));
+  row.append(el("span", null, text), cb);
+  return row;
+}
+
 async function pickImageDataURL(maxPx = 128) {
   return new Promise((resolve) => {
     const inp = el("input");
@@ -89,6 +97,12 @@ export function openUserSettings() {
   body.append(el("div", "grp", "Aparência"));
   body.append(appearanceControls());
 
+  // comunidade
+  if (window.mula?.community) {
+    body.append(el("div", "grp", "Comunidade"));
+    body.append(communityControls(close));
+  }
+
   // jogos
   if (window.mula?.game) {
     body.append(el("div", "grp", "Status de jogo"));
@@ -113,6 +127,70 @@ export function openUserSettings() {
   });
   actions.append(cancel, save);
   body.append(actions);
+}
+
+// ---------------------------------------------------------------- comunidade
+function communityControls(closeModal) {
+  const box = el("div", "member-admin");
+  const c = state.community || {};
+
+  box.append(el("p", "field-hint", `Você está em "${c.name || "sua comunidade"}". Quem abre o Mulla Cord na mesma rede vê e entra sozinho.`));
+
+  const inviteWrap = el("div", "host-addr");
+  const link = el("span", "ha-link", "gerando convite…");
+  inviteWrap.append(link);
+  const copy = el("button", "ha-copy icon-btn");
+  copy.append(icon("link", 13));
+  copy.title = "Copiar convite";
+  inviteWrap.append(copy);
+  box.append(labeled("Convite (para amigos de outra rede)", inviteWrap));
+
+  window.mula.community.invite().then((inv) => {
+    link.textContent = inv.link;
+    copy.addEventListener("click", () => {
+      navigator.clipboard?.writeText(inv.link);
+      toast("Convite copiado", "success");
+    });
+  }).catch(() => { link.textContent = "indisponível"; });
+
+  const pub = el("input");
+  pub.placeholder = "ex.: meu-ip-publico:8787 (opcional)";
+  pub.value = c.publicHost || "";
+  const pubSave = el("button", "ghost", "Salvar endereço público");
+  pubSave.addEventListener("click", async () => {
+    try {
+      await window.mula.community.update({ publicHost: pub.value.trim() });
+      toast("Endereço salvo — reiniciando o nó", "success");
+    } catch (e) { toast(e.message, "error"); }
+  });
+  box.append(labeled("Endereço público", pub), pubSave);
+
+  // preferências deste dispositivo (bandeja / semente do enxame)
+  if (window.mula?.prefs) {
+    box.append(el("p", "sub-label", "Este dispositivo"));
+    window.mula.prefs.get().then((p) => {
+      box.append(
+        toggleRow("Manter no ar em segundo plano (fechar vai pra bandeja)", p.background,
+          (v) => window.mula.prefs.set({ background: v })),
+        toggleRow("Iniciar com o Windows", p.openAtLogin,
+          (v) => window.mula.prefs.set({ openAtLogin: v })),
+      );
+    });
+  }
+
+  const leave = el("button", "danger-text", "Sair desta comunidade");
+  leave.addEventListener("click", () => {
+    if (state.community) {
+      localStorage.removeItem("mula.comm.setup." + state.community.id);
+      localStorage.removeItem("mula.session." + state.community.id);
+    }
+    window.mula.community.update({ name: "Minha comunidade" }).finally(() => location.reload());
+  });
+  const leaveRow = el("div", "row");
+  leaveRow.append(leave);
+  box.append(leaveRow);
+
+  return box;
 }
 
 // ---------------------------------------------------------------- status de jogo

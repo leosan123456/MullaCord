@@ -212,19 +212,22 @@ async def user_guild_ids(user_id: int) -> list[int]:
 # ---------------------------------------------------------------- criação
 async def create_default_layout(guild_id: int, owner_id: int) -> None:
     """@everyone + categoria Geral + canais #geral e Voz Geral."""
+    from .replication import next_id
+
     await db.execute(
-        """INSERT INTO roles (guild_id, name, color, permissions, position, is_default)
-           VALUES (?, '@everyone', NULL, ?, 0, 1)""",
-        (guild_id, DEFAULT_EVERYONE),
+        """INSERT INTO roles (id, guild_id, name, color, permissions, position, is_default)
+           VALUES (?, ?, '@everyone', NULL, ?, 0, 1)""",
+        (await next_id(), guild_id, DEFAULT_EVERYONE),
     )
-    cur = await db.execute(
-        "INSERT INTO categories (guild_id, name, position) VALUES (?, 'Geral', 0)", (guild_id,)
-    )
-    cat_id = cur.lastrowid
+    cat_id = await next_id()
     await db.execute(
-        """INSERT INTO channels (type, name, guild_id, category_id, position)
-           VALUES ('text', 'geral', ?, ?, 0), ('voice', 'Voz Geral', ?, ?, 1)""",
-        (guild_id, cat_id, guild_id, cat_id),
+        "INSERT INTO categories (id, guild_id, name, position) VALUES (?, ?, 'Geral', 0)",
+        (cat_id, guild_id),
+    )
+    await db.execute(
+        """INSERT INTO channels (id, type, name, guild_id, category_id, position)
+           VALUES (?, 'text', 'geral', ?, ?, 0), (?, 'voice', 'Voz Geral', ?, ?, 1)""",
+        (await next_id(), guild_id, cat_id, await next_id(), guild_id, cat_id),
     )
 
 

@@ -11,7 +11,16 @@ import json
 import logging
 
 from . import __version__
-from .config import DISCOVERY_PORT, SERVER_ID, SERVER_NAME
+from .config import (
+    COMMUNITY_ID,
+    COMMUNITY_NAME,
+    DISCOVERY_PORT,
+    NODE_PRIORITY,
+    PUBLIC_HOST,
+    SERVER_ID,
+    SERVER_NAME,
+    STARTED_AT,
+)
 from .database import db
 
 log = logging.getLogger("mulacord.discovery")
@@ -43,10 +52,16 @@ class _Protocol(asyncio.DatagramProtocol):
             "service": "mulacord",
             "nonce": nonce,
             "server_id": SERVER_ID,
+            "node_id": SERVER_ID,
             "name": SERVER_NAME,
             "version": __version__,
             "http_port": _http_port,
             "members": members,
+            "community_id": COMMUNITY_ID,
+            "community_name": COMMUNITY_NAME,
+            "node_priority": NODE_PRIORITY,
+            "started_at": STARTED_AT,
+            "public_host": PUBLIC_HOST,
         }).encode("utf-8")
         try:
             self.transport.sendto(payload, addr)

@@ -2,11 +2,13 @@
 
 *Your community, in tune.*
 
-No Mulla Cord **não existe servidor central**: quem quiser hospedar roda o próprio
-servidor no PC; o app conecta ao servidor de um amigo — ou ao seu.
+No Mulla Cord **não existe servidor central e nem passo de "hospedar"**. Você abre
+o app, ele acha quem está na mesma rede e vocês já conversam. Cada app aberto é um
+**nó** que guarda a comunidade inteira; os nós se sincronizam entre si e o
+histórico se cura sozinho.
 
-- **Só quero conversar** → seções 1 a 4.
-- **Quero hospedar** → seção 5.
+- **Começar** → seções 1 a 4.
+- **Deixar sempre no ar (semente)** e **amigos de outra rede** → seção 5.
 - **Rodar do código-fonte** → seção 7.
 
 ---
@@ -17,32 +19,33 @@ servidor no PC; o app conecta ao servidor de um amigo — ou ao seu.
 |---|---|
 | Sistema | Windows 10/11 (64-bit) |
 | Disco | ~300 MB |
-| Para conversar | só o app |
-| Para hospedar | liberar a porta 8787 |
+| Para conversar na LAN | só o app |
+| Para amigos de outra rede | UPnP no roteador **ou** redirecionar a porta 8787 |
 
 Baixe da pasta [`releases/`](../releases/) do repositório:
 
 | Opção | Arquivo | Como usar |
 |---|---|---|
-| **Instalar** | `MullaCord-Setup-0.2.0.exe` | Dois cliques → instala em segundos e cria o atalho **Mulla Cord** na área de trabalho e no menu Iniciar. |
-| **Portátil** | `MullaCord-portable-0.2.0.exe` | Dois cliques e o app abre. Nada é instalado; pode deixar num pen drive. |
+| **Instalar** | `MullaCord-Setup-1.3.0.exe` | Dois cliques → instala em segundos e cria o atalho **Mulla Cord** na área de trabalho e no menu Iniciar. |
+| **Portátil** | `MullaCord-portable-1.3.0.exe` | Dois cliques e o app abre. Nada é instalado; pode deixar num pen drive. |
 
 > **SmartScreen** ("aplicativo não reconhecido"): os `.exe` não têm assinatura
 > digital paga. Clique em **Mais informações → Executar assim mesmo**.
 
-O app já traz o servidor embutido — não precisa instalar Python nem nada.
+O app já traz o servidor embutido — não precisa instalar Python nem nada. Ao abrir,
+ele sobe um **nó** em segundo plano sozinho.
 
-## 2. Escolher um servidor
+## 2. Entrar numa comunidade
 
-Ao abrir, a tela de conexão oferece três caminhos:
+No primeiro uso a tela oferece três caminhos:
 
-- **Na sua rede** — se um amigo hospeda na mesma rede, o servidor dele aparece
-  sozinho. Clique nele.
-- **Por link** — cole `mula://192.168.0.10:8787` (ou `192.168.0.10:8787`) e clique
-  em **Conectar**. Clicar num link `mula://` também abre o app.
-- **Hospedar o meu** — veja a seção 5.
+- **Na sua rede** — se alguém já abriu o Mulla Cord na mesma rede, a comunidade
+  dele aparece ("Os Brothers · 3 pessoas · nesta rede"). Um clique e você entra.
+- **Criar comunidade** — dê um nome e pronto; os amigos na mesma rede vão te achar.
+- **Entrar com um convite** — cole um `mula://join/…` que um amigo de outra rede te
+  mandou (ele copia em Perfil → Comunidade → Convite).
 
-Servidores já usados ficam salvos; se a sessão for válida, o app reconecta sozinho.
+Depois disso o app entra direto — a sessão fica salva por comunidade.
 
 ## 3. Criar sua conta
 
@@ -51,17 +54,16 @@ Aba **Criar conta**:
 - **Como quer ser chamado** — 3 a 32 caracteres.
 - **Senha** — mínimo 6 caracteres.
 - **E-mail** — opcional (link *+ adicionar e-mail*); serve só para recuperar a
-  conta nesse servidor.
+  conta nessa comunidade.
 
-Cada servidor tem contas próprias. O primeiro a criar conta num servidor novo
-vira o dono.
+O primeiro a criar conta numa comunidade nova vira o dono. Sua conta e o histórico
+ficam em **todos** os nós da comunidade — se um PC desliga, os outros seguem com tudo.
 
 ## 3.1 Adicionar amigos
 
-Todo mundo que criou conta no mesmo servidor aparece no botão **👥** ao lado de
-"Amigos" (ou digitando na caixa **buscar pessoas do servidor**). Clique no **+**
-para mandar o pedido; a outra pessoa aceita e vocês já podem trocar DM. Não
-precisa saber o nome de usuário exato — a lista mostra todo mundo.
+Todo mundo da comunidade aparece no botão **👥** ao lado de "Amigos" (ou digitando
+na caixa de busca). Clique no **+** para mandar o pedido; a outra pessoa aceita e
+vocês já podem trocar DM. Não precisa saber o nome de usuário exato.
 
 ## 4. Conversar, voz e tela
 
@@ -77,27 +79,32 @@ precisa saber o nome de usuário exato — a lista mostra todo mundo.
 - **Configurações de voz** (engrenagem no rodapé da barra lateral): dispositivos,
   modo (sempre ativo / por voz / apertar para falar), volume por pessoa, medidor.
 
-Voz e tela são P2P (direto entre os apps); o servidor só faz o encontro. Bom até ~5 pessoas.
+Voz e tela são P2P (direto entre os apps); o nó só faz o encontro. Bom até ~5 pessoas.
 
-## 5. Hospedar seu servidor
+## 5. Semente do enxame e amigos de outra rede
 
-Tela de conexão → **Hospedar meu servidor neste PC**:
+**Deixar sempre no ar** — Perfil 👤 → *Comunidade* → *Este dispositivo*:
 
-1. Dê um nome.
-2. **Iniciar servidor** — o app sobe tudo.
-3. Ao ficar **no ar**, os links para compartilhar aparecem:
-   - `mula://127.0.0.1:8787` — só neste PC
-   - `mula://192.168.x.x:8787` — amigos na mesma rede
+- **Manter no ar em segundo plano** — fechar a janela manda o app pra bandeja; o
+  nó continua no enxame e os amigos seguem alcançando a comunidade por este PC.
+- **Iniciar com o Windows** — o nó sobe junto com o PC (sem abrir a janela).
+
+Um PC com essas duas opções ligadas vira a "semente" estável da comunidade.
+
+**Amigos de outra rede** — Perfil 👤 → *Comunidade*:
+
+1. O app tenta abrir a porta 8787 no roteador sozinho (**UPnP**). Se der certo, o
+   **Convite** já sai com seu endereço público.
+2. Não funcionou? Redirecione **8787/TCP** para o IP local deste PC (port
+   forwarding) e preencha **Endereço público** = `SEU_IP_PUBLICO:8787`. Alternativa:
+   os dois na mesma VPN (Tailscale, ZeroTier).
+3. Copie o **Convite** (`mula://join/…`) e mande. Quem recebe cola em *Entrar com
+   um convite*.
 
 > **Firewall**: na 1ª vez o Windows pergunta — marque **Redes privadas** e
 > **Permitir acesso**.
 
-**Amigos pela internet:** no seu roteador, redirecione a porta **8787/TCP** para o
-IP local do seu PC (port forwarding) e passe o link com seu **IP público**
-(`mula://SEU_IP_PUBLICO:8787`). Alternativa: os dois na mesma VPN (Tailscale, ZeroTier).
-
-O modo host roda enquanto o app está aberto. Dados em `%APPDATA%\Mulacord\server`.
-Para um servidor 24/7, rode do código-fonte (seção 7).
+Dados em `%APPDATA%\Mulla Cord\communities\<id>\`.
 
 ## 6. Deixar com a sua cara
 
@@ -134,11 +141,11 @@ npm run dist       # -> desktop/dist-installer/MullaCord-Setup-<versão>.exe
 | Problema | Solução |
 |---|---|
 | Windows bloqueou o instalador | SmartScreen — **Mais informações → Executar assim mesmo** |
-| Amigo não me encontra na rede | Mesma rede? Firewall liberado? App do host aberto? Mande o link `mula://` direto |
-| Amigo de outra cidade não conecta | Port forwarding da 8787 + IP público, ou VPN entre os dois |
+| Não aparece nenhuma comunidade na rede | Mesma rede? Firewall liberado? Algum amigo com o app aberto? Peça um convite e cole |
+| Amigo de outra cidade não conecta | UPnP falhou → port forwarding da 8787 + endereço público no painel de Comunidade, ou VPN |
 | Sem áudio na chamada | Permissão de microfone no Windows; conferir dispositivo em Configurações de voz |
-| Servidor caiu ao fechar o app | O modo host roda com o app aberto; para 24/7 rode do código-fonte |
-| Esqueci a senha | Sem e-mail não há recuperação; o dono pode apagar `mulacord.sqlite3` (zera o servidor) |
+| Fechei o app e os amigos caíram | Ligue "Manter no ar em segundo plano" (Perfil → Comunidade), ou peça pra outra pessoa deixar o app aberto — a comunidade fica no ar por qualquer nó |
+| Esqueci a senha | Sem e-mail não há recuperação; apagar o data dir da comunidade zera as contas dela |
 
 ---
 

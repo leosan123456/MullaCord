@@ -15,24 +15,8 @@
   </div>
 
   <div id="splash">
-    <div class="splash-fx"><span class="s1"></span><span class="s2"></span><span class="s3"></span></div>
-    <svg class="brand-wave" viewBox="0 0 1200 200" preserveAspectRatio="none" aria-hidden="true">
-      <path d="M-20 100 C 180 20, 320 180, 520 100 S 880 20, 1080 100 1240 80 1240 80"
-            fill="none" stroke="url(#wg)" stroke-width="2.5" />
-      <path d="M-20 130 C 200 60, 340 200, 560 120 S 900 60, 1120 130"
-            fill="none" stroke="url(#wg)" stroke-width="1.5" opacity="0.5" />
-      <g class="wave-nodes" fill="var(--accent)">
-        <circle cx="180" cy="60" r="4"/><circle cx="520" cy="100" r="4"/>
-        <circle cx="700" cy="55" r="3"/><circle cx="1080" cy="100" r="4"/>
-      </g>
-      <defs>
-        <linearGradient id="wg" x1="0" x2="1">
-          <stop offset="0" stop-color="var(--accent)" stop-opacity="0"/>
-          <stop offset="0.5" stop-color="var(--accent)"/>
-          <stop offset="1" stop-color="var(--accent-light)" stop-opacity="0.2"/>
-        </linearGradient>
-      </defs>
-    </svg>
+    <div class="splash-fx"><span class="s1"></span><span class="s2"></span></div>
+    <canvas id="splash-wave" class="splash-wave" aria-hidden="true"></canvas>
     <div class="splash-inner">
       <svg class="splash-logo" viewBox="0 0 32 32" aria-hidden="true">
         <rect width="32" height="32" rx="9" fill="#FACC15"/>
@@ -42,8 +26,7 @@
         <circle cx="18.3" cy="18" r="1.5" fill="#FACC15"/>
       </svg>
       <div class="splash-name">Mulla Cord</div>
-      <div class="splash-bar"></div>
-      <div class="splash-tag">Your community, in tune</div>
+      <div class="splash-tag readout">Your community, in tune</div>
       <div class="brand-pills">
         <span>Chat</span><span>Voice</span><span>Community</span><span>Live</span>
       </div>
@@ -76,49 +59,53 @@
       <div class="auth-card">
         <div class="auth-logo">
           <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
-            <rect width="32" height="32" rx="9" fill="#E8A64C"/>
-            <path d="M9 6.2c0-1 1.1-1.5 1.9-.9L14 7.6M23 6.2c0-1-1.1-1.5-1.9-.9L18 7.6"
-                  stroke="#2c1d08" stroke-width="2.3" fill="none" stroke-linecap="round"/>
-            <path d="M8 12.2a8 7 0 0 1 16 0c0 3.9-3.6 7-8 7-1.1 0-2.1-.2-3-.5l-3.9 1.9.9-3.4A6.6 6.6 0 0 1 8 12.2Z"
-                  fill="#2c1d08"/>
+            <rect width="32" height="32" rx="9" fill="#FACC15"/>
+            <path d="M11.5 9 15 13.5M20.5 9 17 13.5" stroke="#09090B" stroke-width="2.4" stroke-linecap="round"/>
+            <ellipse cx="16" cy="18.5" rx="7" ry="6.2" fill="#09090B"/>
+            <circle cx="13.7" cy="18" r="1.5" fill="#FACC15"/>
+            <circle cx="18.3" cy="18" r="1.5" fill="#FACC15"/>
           </svg>
           <h1>Mulla Cord</h1>
         </div>
 
-        <!-- Passo 1: escolher servidor -->
-        <div id="auth-servers">
-          <p class="muted">Your community, in tune. Entre num servidor de amigo — ou hospede o seu.</p>
+        <!-- Primeiro uso: entrar numa comunidade da rede, criar, ou usar convite -->
+        <div id="auth-welcome" hidden>
+          <p class="muted">Your community, in tune. Abra sua comunidade — os amigos na
+            mesma rede entram sozinhos.</p>
           <div class="brand-pills small-pills">
             <span>Chat</span><span>Voice</span><span>Community</span><span>Live</span>
           </div>
 
-          <div id="known-servers" class="server-list"></div>
-
-          <div class="server-group" id="lan-group" hidden>
-            <div class="server-group-head">
-              <span>Na sua rede</span>
-              <button id="lan-refresh" class="icon-btn" title="Procurar de novo" data-icon="search" data-icon-size="14"></button>
-            </div>
-            <div id="lan-servers" class="server-list"></div>
+          <div id="lan-found" hidden>
+            <p class="sub-label">Na sua rede</p>
+            <div id="lan-found-list" class="server-list"></div>
+            <div class="or-sep"><span>ou crie a sua</span></div>
           </div>
 
-          <label>Conectar por endereço ou link
-            <input id="server-url" type="text" placeholder="192.168.0.10:8787  ou  mula://…" spellcheck="false" />
+          <label>Nome da comunidade
+            <input id="new-comm-name" type="text" spellcheck="false" placeholder="ex.: Os Brothers" />
           </label>
-          <button id="server-connect" class="primary full">Conectar</button>
-          <button id="host-btn" class="ghost full">Hospedar meu servidor neste PC</button>
+          <button id="create-comm" class="primary full">Criar comunidade</button>
+
+          <div class="or-sep"><span>ou</span></div>
+
+          <label>Entrar com um convite
+            <input id="join-invite" type="text" autocomplete="off" spellcheck="false" placeholder="cole o convite mula://join/…" />
+          </label>
+          <button id="join-comm" class="ghost full">Entrar na comunidade</button>
           <p id="auth-error" class="error"></p>
         </div>
 
-        <!-- Passo 2: credenciais -->
+        <!-- Credenciais -->
         <div id="auth-creds" hidden>
-          <button id="auth-back" class="linkish">← trocar de servidor</button>
+          <button id="auth-back" class="linkish" hidden>← trocar de comunidade</button>
           <div class="server-badge">
-            <span data-icon="link" data-icon-size="15"></span>
-            <span id="creds-server-name">servidor</span>
+            <span data-icon="users" data-icon-size="15"></span>
+            <span id="creds-server-name">comunidade</span>
           </div>
+          <p id="creds-node" class="field-hint" hidden></p>
 
-          <p id="creds-welcome" class="welcome-note" hidden>Seja o primeiro a criar uma conta neste servidor.</p>
+          <p id="creds-welcome" class="welcome-note" hidden>Seja o primeiro a criar uma conta nesta comunidade.</p>
 
           <div id="auth-tabs" class="seg">
             <button data-tab="login" class="active">Entrar</button>
@@ -133,7 +120,7 @@
               <input id="login-id" type="text" autocomplete="off" spellcheck="false" />
             </label>
             <label>Senha
-              <input id="password" type="password" />
+              <input id="password" type="password" autocomplete="current-password" />
             </label>
             <p id="pw-hint" class="field-hint" hidden>Mínimo de 6 caracteres.</p>
             <button id="email-toggle" class="linkish" hidden type="button">+ adicionar e-mail (para recuperar a conta)</button>
@@ -144,24 +131,6 @@
 
           <button id="auth-submit" class="primary full">Entrar</button>
           <p id="auth-error2" class="error"></p>
-        </div>
-
-        <!-- Painel de host -->
-        <div id="host-panel" hidden>
-          <button id="host-back" class="linkish">← voltar</button>
-          <h3>Hospedar servidor</h3>
-          <label>Nome do servidor
-            <input id="host-name" type="text" value="Meu servidor Mulla Cord" spellcheck="false" />
-          </label>
-          <div id="host-state" class="host-state">parado</div>
-          <div id="host-addrs" class="host-addrs"></div>
-          <pre id="host-log" class="host-log" hidden></pre>
-          <div class="row">
-            <button id="host-start" class="primary">Iniciar servidor</button>
-            <button id="host-stop" class="ghost" hidden>Parar</button>
-            <button id="host-enter" class="primary" hidden>Entrar neste servidor</button>
-          </div>
-          <p id="auth-error3" class="error"></p>
         </div>
       </div>
     </div>
@@ -239,12 +208,14 @@
             <span id="channel-title">Selecione um canal</span>
             <span id="channel-topic" class="topic" hidden></span>
           </div>
+          <div id="conn-readout" class="conn-readout readout" hidden></div>
           <div class="channel-actions">
             <button id="btn-voice" class="ghost" hidden><span data-icon="volume" data-icon-size="16"></span>Entrar na call</button>
             <button id="btn-screen" class="ghost" hidden><span data-icon="screenShare" data-icon-size="16"></span>Tela</button>
             <button id="btn-members" class="icon-btn" title="Membros" data-icon="users" data-icon-size="18" hidden></button>
           </div>
         </header>
+        <canvas id="wave-spine" class="wave-spine" aria-hidden="true"></canvas>
 
         <div id="voice-panel" class="voice-panel" hidden>
           <div id="voice-title" class="voice-title"></div>
@@ -259,21 +230,11 @@
 
         <div id="messages" class="messages"></div>
         <div id="empty-state" class="empty-state" hidden>
-          <svg class="brand-wave" viewBox="0 0 1200 200" preserveAspectRatio="none" aria-hidden="true">
-            <path d="M-20 100 C 180 30, 320 170, 520 100 S 880 30, 1080 100 1240 90 1240 90"
-                  fill="none" stroke="url(#wg2)" stroke-width="2" />
-            <g class="wave-nodes" fill="var(--accent)">
-              <circle cx="180" cy="65" r="4"/><circle cx="520" cy="100" r="4"/><circle cx="1080" cy="100" r="4"/>
-            </g>
-            <defs><linearGradient id="wg2" x1="0" x2="1">
-              <stop offset="0" stop-color="var(--accent)" stop-opacity="0"/>
-              <stop offset="0.5" stop-color="var(--accent)"/>
-              <stop offset="1" stop-color="var(--accent)" stop-opacity="0"/>
-            </linearGradient></defs>
-          </svg>
-          <span data-icon="hash" data-icon-size="46"></span>
-          <h3>Nenhum canal aberto</h3>
-          <p>Escolha uma conversa ou um canal para começar.</p>
+          <canvas id="empty-wave" class="empty-wave" aria-hidden="true"></canvas>
+          <div class="empty-copy">
+            <h3>A sala está em silêncio</h3>
+            <p>Abra uma conversa ou um canal e comece a falar.</p>
+          </div>
         </div>
         <div id="typing" class="typing"></div>
 

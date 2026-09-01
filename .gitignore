@@ -27,3 +27,6 @@ server/data/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Claude Code (config local + symlinks de skills com caminho absoluto)
+.claude/

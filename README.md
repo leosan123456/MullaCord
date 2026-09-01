@@ -1,12 +1,18 @@
 # Mulla Cord
 
-*Your community, in tune.* — app de conversas estilo Discord, self-hosted. Cada
-pessoa cria uma conta (só nome + senha) e hospeda o próprio servidor no PC. Amigos
-entram pela descoberta na rede local ou por um link `mula://`.
+*Your community, in tune.* — app de conversas estilo Discord, **sem nuvem e sem
+passo de "hospedar"**. Você abre o app, ele acha quem está na mesma rede e vocês
+já conversam. Cada app aberto é um **nó com a réplica inteira** da comunidade; os
+nós se sincronizam entre si (estilo torrent) e o histórico se cura sozinho.
 
-- **Multiusuário no mesmo servidor**: cada pessoa cria a conta dela, encontra as
-  outras contas no diretório do servidor, manda pedido de amizade e conversa em
-  tempo real (presença, "digitando")
+- **Comunidade em vez de "servidor"**: no primeiro uso você **cria uma comunidade**
+  ou **entra numa que apareceu na rede** (ou cola um convite `mula://join/…` de um
+  amigo de outra rede). Não existe mais botão "Hospedar".
+- **Enxame auto-alimentado**: todo nó guarda contas, amigos, canais e mensagens
+  inteiros. Anti-entropia + push rápido replicam as mudanças; se um PC desliga, os
+  outros seguem com tudo. Deixe o app na bandeja pra ser uma "semente" sempre no ar.
+- **Multiusuário**: cada pessoa cria a conta dela, encontra as outras no diretório
+  da comunidade, manda pedido de amizade e conversa em tempo real (presença, "digitando")
 - **Chat privado (DM) e grupos** de amigos
 - **Servidores (guilds)** estilo Discord: canais de texto/voz, categorias, convites,
   lista de membros e **sistema completo de cargos e permissões** (bitfield, hierarquia,
@@ -24,13 +30,17 @@ entram pela descoberta na rede local ou por um link `mula://`.
   animada, fundo em gradiente com parallax, tema claro/escuro, janela sem moldura,
   ícones SVG. **Personalização**: cor de destaque, estilo de fundo, densidade,
   ligar/desligar animações e parallax
-- **Conexão**: descoberta automática na rede local, servidores salvos, link `mula://`,
-  indicador de latência, reconexão automática
-- **Modo host**: o app sobe o servidor local e mostra os links para compartilhar
-- **Servidor local**: FastAPI + SQLite (um backend hospeda vários servidores)
-- **App desktop**: Electron + instalador Windows (app + servidor empacotados juntos)
+- **Conexão**: nó local sobe sozinho no launch, descoberta automática na LAN,
+  coordenador eleito por prioridade → tempo no ar → id, `mula://join/…` para a
+  internet, tentativa de abrir a porta no roteador por **UPnP**, reconexão automática
+- **Nó local**: FastAPI + SQLite + oplog por triggers + gossip. Cada nó é uma
+  réplica completa; um backend ainda pode hospedar vários canais/servidores (guilds)
+- **App desktop**: Electron + bandeja + iniciar com o Windows + instalador
+  (app + servidor empacotados juntos)
 
-> ⚠️ O schema mudou na fase 2. Apague `server/data/mulacord.sqlite3*` se vinha da fase 1.
+> ⚠️ Bancos anteriores à 1.3 não têm o log de replicação; ao subir a 1.3 o nó faz
+> o *backfill* automático. Se algo ficar estranho, apague `server/data/mulacord.sqlite3*`
+> (ou `%APPDATA%/Mulla Cord/communities/<id>/`) e recomece.
 
 ## Baixar (Windows 64-bit)
 
@@ -39,13 +49,17 @@ Prontos para usar, em [`releases/`](releases/) — nenhum Python/Node necessári
 
 | Arquivo | O que faz |
 |---|---|
-| [`MullaCord-Setup-0.2.0.exe`](releases/MullaCord-Setup-0.2.0.exe) | **Instalador rápido** — 1 clique, instala e cria os atalhos "Mulla Cord" (área de trabalho + menu Iniciar) |
-| [`MullaCord-portable-0.2.0.exe`](releases/MullaCord-portable-0.2.0.exe) | **Portátil** — dois cliques e abre, sem instalar nada |
+| [`MullaCord-Setup-1.3.0.exe`](releases/MullaCord-Setup-1.3.0.exe) | **Instalador rápido** — 1 clique, instala e cria os atalhos "Mulla Cord" (área de trabalho + menu Iniciar) |
+| [`MullaCord-portable-1.3.0.exe`](releases/MullaCord-portable-1.3.0.exe) | **Portátil** — dois cliques e abre, sem instalar nada |
 
 > SmartScreen ("app não reconhecido"): os `.exe` não têm assinatura digital paga —
 > **Mais informações → Executar assim mesmo**.
 
 Passo a passo para novos usuários: [docs/INSTALL.md](docs/INSTALL.md).
+
+Página de download (GitHub Pages): [`site/`](site/) — `index.html` estático com os
+links dos instaladores; publique via **Settings → Pages → Source: GitHub Actions**
+([workflow](.github/workflows/pages.yml)).
 
 ## Estrutura
 
@@ -62,9 +76,9 @@ mulacord/
 
 | Ferramenta | Versão | Observação |
 |---|---|---|
-| Python | 3.11+ | detectado: 3.14.7 (use o launcher `py`) |
+| Python | 3.11+ | 3.11–3.14; use o launcher `py`. SQLite ≥ 3.35 (RETURNING) — vem com o Python |
 | Node.js + npm | 20+ | detectado: v24.20.0 |
-| git | qualquer | **não instalado** — https://git-scm.com |
+| git | qualquer | https://git-scm.com |
 
 ## Rodando o servidor
 
@@ -85,10 +99,15 @@ Teste rápido do backend (com o servidor no ar, noutro terminal):
 .\.venv\Scripts\python.exe scripts\smoke_attachments.py # upload de imagem, mensagem com anexo, download
 .\.venv\Scripts\python.exe scripts\smoke_activity.py    # status de jogo propagado a amigos
 .\.venv\Scripts\python.exe scripts\smoke_e2e.py         # 2 usuários: busca, amizade, DM dos 2 lados
+.\.venv\Scripts\python.exe scripts\smoke_swarm.py       # 2 nós replicando: conta/amizade/DM/mensagem convergem (sobe 2 nós antes)
 ```
 
-Amigos na mesma rede aparecem automaticamente no login. De fora da LAN, o host
-libera a porta 8787 no roteador e passa o link `mula://<ip-público>:8787`.
+Para testar o enxame à mão: suba 2 nós apontando um pro outro e rode `smoke_swarm`.
+
+```powershell
+$env:MULACORD_PORT=8801; $env:MULACORD_DATA_DIR="$PWD\dataA"; $env:MULACORD_COMMUNITY_ID="teste"
+$env:MULACORD_BOOTSTRAP_PEERS="http://127.0.0.1:8802"; .\.venv\Scripts\python.exe run.py   # noutro terminal, 8802 ↔ 8801
+```
 
 ## Rodando o app desktop
 
@@ -98,8 +117,9 @@ npm install
 npm start
 ```
 
-No login: escolha um servidor da rede, cole um endereço / link `mula://`, ou clique
-em **Hospedar meu servidor** para o app subir o servidor local.
+No primeiro uso: **crie uma comunidade**, **entre numa que apareceu na rede**, ou
+cole um convite `mula://join/…`. O nó local sobe sozinho — não há passo de hospedar.
+Depois disso o app entra direto (sessão salva por comunidade).
 
 > `npm start` passa por `scripts/start.js`, que remove `ELECTRON_RUN_AS_NODE`
 > antes de subir o Electron (o terminal do VS Code define essa variável e ela
@@ -122,6 +142,11 @@ Saída em `desktop/dist-installer/`:
 
 Os dois já incluem o app **e** o servidor. Não são assinados (sem certificado pago).
 Depois de gerar, copie os `.exe` para `releases/` para versionar (usam Git LFS).
+
+**Fluxo de atualização** (sempre que fechar um conjunto de mudanças): bump da versão
+em `desktop/package.json` **e** `server/mulacord_server/__init__.py` → entrada no
+`CHANGELOG.md` → `npm run dist` → copiar os `.exe` para `releases/` → commit + tag
+`vX.Y.Z`.
 
 ## Documentação
 

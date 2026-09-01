@@ -4,6 +4,7 @@ import { VoiceSession } from "./rtc.js";
 import { $, el, state, currentGuild, memberName, dmName, avatarNode, toast, initTheme, elapsedText, activityLine, loadGameCfg } from "./store.js";
 import { P, has, channelPermissions } from "./permissions.js";
 import { icon, hydrateIcons } from "./icons.js";
+import { SignalWave, registerWave, pulseSignal, setSignalLevel, refreshWaves } from "./wave.js";
 import {
   initGuildUI,
   renderGuildSidebar,
@@ -12,12 +13,26 @@ import {
 } from "./guild.js";
 import { openUserSettings, openVoiceSettings } from "./settings.js";
 import {
-  knownServers, getServer, rememberServer, forgetServer, clearServerToken,
-  normalizeUrl, parseMulaLink, shareLink,
-} from "./servers.js";
+  resolveActive, getSession, saveSession, clearSession, SELF_URL,
+} from "./community.js";
 
 initTheme();
 hydrateIcons();
+
+// ---------------- linha de sinal (assinatura) ----------------
+let spineWave = null, emptyWave = null;
+try {
+  const sc = $("splash-wave");
+  if (sc) { const w = new SignalWave(sc, { thickness: 2, level: 0.14, density: 7 }); w.retune(); }
+} catch {}
+function initSignalWaves() {
+  try {
+    if (!spineWave && $("wave-spine"))
+      spineWave = registerWave(new SignalWave($("wave-spine"), { thickness: 1.5, level: 0.14, density: 11 }));
+    if (!emptyWave && $("empty-wave"))
+      emptyWave = registerWave(new SignalWave($("empty-wave"), { thickness: 2, level: 0.2, density: 6 }));
+  } catch {}
+}
 
 // ---------------- splash ----------------
 const SPLASH_MIN = 1500;
@@ -56,109 +71,53 @@ window.mula?.win?.onState?.((maxed) => {
   hydrateIcons($("tb-max").parentElement);
 });
 
-// ================= AUTH: escolher servidor =================
+// ================= AUTH: comunidade + nó coordenador =================
 let authMode = "login";
-let authTarget = null; // { url, name }
+let community = null;       // { id, name, secret, priority, publicHost }
+let activeNode = null;      // { url, info, source } — o coordenador eleito
 
 function showAuthStep(step) {
-  $("auth-servers").hidden = step !== "servers";
+  $("auth-welcome").hidden = step !== "welcome";
   $("auth-creds").hidden = step !== "creds";
-  $("host-panel").hidden = step !== "host";
-  ["auth-error", "auth-error2", "auth-error3"].forEach((id) => ($(id).textContent = ""));
+  ["auth-error", "auth-error2"].forEach((id) => { const n = $(id); if (n) n.textContent = ""; });
 }
 
-function renderKnownServers() {
-  const box = $("known-servers");
-  box.replaceChildren();
-  for (const s of knownServers()) {
-    box.append(serverCard({
-      name: s.name, sub: s.url.replace(/^https?:\/\//, "") + (s.token ? " · sessão salva" : ""),
-      saved: !!s.token,
-      onClick: () => pickServer(s.url, { name: s.name, serverId: s.serverId, token: s.token }),
-      onForget: () => { forgetServer(s.url); renderKnownServers(); },
-    }));
+// espera o próprio nó local ficar pronto (ele sobe sozinho no launch)
+async function waitOwnNode(timeoutMs = 8000) {
+  if (!window.mula?.host) return;
+  const t0 = Date.now();
+  while (Date.now() - t0 < timeoutMs) {
+    const s = await window.mula.host.status().catch(() => null);
+    if (s?.ready) return;
+    await new Promise((r) => setTimeout(r, 400));
   }
 }
 
-function serverCard({ name, sub, saved, members, onClick, onForget }) {
-  const card = el("button", "server-card");
-  const badge = el("div", "sc-badge" + (saved ? " saved" : ""), (name || "?").slice(0, 2).toUpperCase());
-  const info = el("div", "sc-info");
-  info.append(el("div", "sc-name", name || "servidor"));
-  info.append(el("div", "sc-sub", sub || ""));
-  card.append(badge, info);
-  if (members != null) card.append(icon("users", 14));
-  if (onForget) {
-    const f = el("span", "sc-forget icon-btn");
-    f.append(icon("x", 13));
-    f.title = "Esquecer";
-    f.addEventListener("click", (e) => { e.stopPropagation(); onForget(); });
-    card.append(f);
-  }
-  card.addEventListener("click", onClick);
-  return card;
+// descobre em qual nó conectar e mostra a tela de credenciais
+async function resolveAndShowCreds({ bootstrap = [], preferRemote = false } = {}) {
+  activeNode = await resolveActive(community, { bootstrap, preferRemote });
+  const info = activeNode.info || await new Api(activeNode.url).info().catch(() => null);
+  activeNode.info = info;
+  const members = info?.members || 0;
+  const openReg = info?.open_registration !== false;
+
+  $("creds-server-name").textContent = community.name;
+  const node = $("creds-node");
+  const onSelf = activeNode.source === "self" || activeNode.url.includes("127.0.0.1");
+  node.textContent = onSelf
+    ? "neste PC — ninguém mais da comunidade está no ar agora"
+    : "conectando no " + activeNode.url.replace(/^https?:\/\//, "");
+  node.hidden = false;
+
+  const firstAccount = members === 0 && openReg;
+  $("creds-welcome").hidden = !firstAccount;
+  $("auth-tabs").style.display = openReg ? "" : "none";
+  $("auth-back").hidden = false;
+  showAuthStep("creds");
+  setAuthMode(firstAccount ? "register" : "login");
+  setTimeout(() => $(firstAccount ? "reg-username" : "login-id")?.focus(), 50);
 }
 
-let lanTimer = null;
-async function startLanDiscovery() {
-  if (!window.mula?.net?.discover) return;
-  const group = $("lan-group");
-  const box = $("lan-servers");
-  try {
-    const found = await window.mula.net.discover();
-    const known = new Set(knownServers().map((s) => s.serverId).filter(Boolean));
-    const fresh = found.filter((f) => !known.has(f.server_id));
-    box.replaceChildren();
-    for (const f of fresh) {
-      box.append(serverCard({
-        name: f.name, sub: f.address + " · " + (f.members ?? 0) + " membros", members: f.members,
-        onClick: () => pickServer(f.url, { name: f.name, serverId: f.server_id }),
-      }));
-    }
-    group.hidden = fresh.length === 0;
-  } catch { group.hidden = true; }
-}
-
-$("lan-refresh").addEventListener("click", startLanDiscovery);
-
-$("server-connect").addEventListener("click", async () => {
-  const raw = $("server-url").value.trim();
-  if (!raw) return;
-  const link = parseMulaLink(raw);
-  await pickServer(link ? link.url : normalizeUrl(raw), {});
-});
-
-async function pickServer(url, { name, serverId, token } = {}) {
-  url = normalizeUrl(url);
-  $("auth-error").textContent = "";
-  $("server-connect").disabled = true;
-  try {
-    const info = await new Api(url).info();
-    name = info.name || name || url;
-    serverId = info.server_id || serverId;
-    rememberServer({ url, name, serverId });
-    if (token) {
-      try {
-        await boot(url, token);
-        return;
-      } catch { clearServerToken(url); }
-    }
-    const firstAccount = (info.members || 0) === 0 && info.open_registration !== false;
-    authTarget = { url, name, openRegistration: info.open_registration !== false, firstAccount };
-    $("creds-server-name").textContent = name;
-    $("auth-tabs").style.display = authTarget.openRegistration ? "" : "none";
-    $("creds-welcome").hidden = !firstAccount;
-    showAuthStep("creds");
-    setAuthMode(firstAccount ? "register" : "login");
-    setTimeout(() => $(firstAccount ? "reg-username" : "login-id").focus(), 50);
-  } catch {
-    $("auth-error").textContent = "Não consegui falar com o servidor nesse endereço.";
-  } finally {
-    $("server-connect").disabled = false;
-  }
-}
-
-// ================= AUTH: credenciais =================
 function setAuthMode(mode) {
   authMode = mode;
   document.querySelectorAll("#auth-tabs button").forEach((b) => b.classList.toggle("active", b.dataset.tab === mode));
@@ -167,7 +126,8 @@ function setAuthMode(mode) {
   $("f-login").hidden = reg;
   $("pw-hint").hidden = !reg;
   $("email-toggle").hidden = !reg;
-  $("f-email").hidden = true;           // e-mail sempre começa escondido; revela pelo link
+  $("f-email").hidden = true;
+  $("password").autocomplete = reg ? "new-password" : "current-password";
   $("auth-submit").textContent = reg ? "Criar conta" : "Entrar";
 }
 
@@ -182,11 +142,86 @@ $("auth-tabs").addEventListener("click", (e) => {
   if (btn) setAuthMode(btn.dataset.tab);
 });
 
-$("auth-back").addEventListener("click", () => { authTarget = null; showAuthStep("servers"); renderKnownServers(); });
+$("auth-back").addEventListener("click", () => { showAuthStep("welcome"); });
+
+// -- primeiro uso: criar comunidade --
+$("create-comm").addEventListener("click", async () => {
+  const btn = $("create-comm");
+  const name = $("new-comm-name").value.trim();
+  $("auth-error").textContent = "";
+  btn.disabled = true;
+  try {
+    community = await window.mula.community.create({ name: name || undefined });
+    await waitOwnNode();
+    await resolveAndShowCreds();
+  } catch (e) {
+    $("auth-error").textContent = e.message || "Não deu pra criar a comunidade.";
+  } finally { btn.disabled = false; }
+});
+
+// -- primeiro uso: entrar com convite --
+$("join-comm").addEventListener("click", async () => {
+  const btn = $("join-comm");
+  const invite = $("join-invite").value.trim();
+  if (!invite) { $("auth-error").textContent = "Cole um convite."; return; }
+  btn.disabled = true;
+  try { await joinCommunity(invite); }
+  catch (e) { $("auth-error").textContent = e.message || "Convite inválido."; }
+  finally { btn.disabled = false; }
+});
+
+async function joinCommunity(payload) {
+  $("auth-error").textContent = "";
+  const res = await window.mula.community.join(payload);
+  community = res;
+  await waitOwnNode();
+  // entra por um peer que já tem os dados; o nó local sincroniza em segundo plano
+  await resolveAndShowCreds({ bootstrap: res.bootstrap || [], preferRemote: true });
+}
+
+// varre a LAN por comunidades já rodando e oferece entrar em uma clique
+async function scanLanForCommunities() {
+  const wrap = $("lan-found");
+  const box = $("lan-found-list");
+  if (!wrap || !window.mula?.net?.discover) return;
+  let beacons = [];
+  try { beacons = (await window.mula.net.discover()) || []; } catch {}
+  const byComm = new Map();
+  for (const b of beacons) {
+    if (!b.community_id || b.community_id === community?.id) continue;
+    if (!byComm.has(b.community_id)) {
+      byComm.set(b.community_id, {
+        id: b.community_id,
+        name: b.community_name || b.name || "Comunidade",
+        members: b.members || 0,
+        addrs: [],
+      });
+    }
+    byComm.get(b.community_id).addrs.push(`${b.address}:${b.http_port || 8787}`);
+  }
+  const comms = [...byComm.values()];
+  box.replaceChildren();
+  wrap.hidden = comms.length === 0;
+  for (const c of comms) {
+    const card = el("button", "server-card");
+    card.append(el("div", "sc-badge", (c.name || "?").slice(0, 2).toUpperCase()));
+    const inf = el("div", "sc-info");
+    inf.append(el("div", "sc-name", c.name));
+    inf.append(el("div", "sc-sub", `${c.members} ${c.members === 1 ? "pessoa" : "pessoas"} · nesta rede`));
+    card.append(inf, icon("users", 14));
+    card.addEventListener("click", async () => {
+      card.disabled = true;
+      try { await joinCommunity({ id: c.id, name: c.name, secret: "", addrs: c.addrs }); }
+      catch (e) { $("auth-error").textContent = e.message || "Não deu pra entrar."; card.disabled = false; }
+    });
+    box.append(card);
+  }
+  hydrateIcons(box);
+}
 
 $("auth-submit").addEventListener("click", async () => {
-  if (!authTarget) return;
-  const { url } = authTarget;
+  if (!activeNode || !community) return;
+  const url = activeNode.url;
   const password = $("password").value;
   $("auth-error2").textContent = "";
   const api = new Api(url);
@@ -202,106 +237,61 @@ $("auth-submit").addEventListener("click", async () => {
     } else {
       res = await api.login({ username_or_email: $("login-id").value.trim(), password });
     }
-    rememberServer({ url, name: authTarget.name, token: res.access_token });
-    localStorage.setItem("mula.server", url);
+    saveSession(community.id, { token: res.access_token, url, node_id: activeNode.info?.node_id || null });
+    localStorage.setItem("mula.comm.setup." + community.id, "1");
     await boot(url, res.access_token);
   } catch (err) {
     $("auth-error2").textContent = err.message || "Falha na autenticação.";
   }
 });
 
-// ================= AUTH: hospedar =================
-$("host-btn").addEventListener("click", () => {
-  showAuthStep("host");
-  refreshHostStatus();
-});
-$("host-back").addEventListener("click", () => showAuthStep("servers"));
-
-let hostPollTimer = null;
-window.mula?.host?.onLog?.((line) => {
-  const log = $("host-log");
-  log.hidden = false;
-  log.textContent = (log.textContent + line).slice(-4000);
-  log.scrollTop = log.scrollHeight;
-});
-
-async function refreshHostStatus() {
-  if (!window.mula?.host) { $("host-state").textContent = "indisponível fora do app"; return; }
-  const s = await window.mula.host.status();
-  renderHostStatus(s);
-}
-
-function renderHostStatus(s) {
-  const stateEl = $("host-state");
-  stateEl.className = "host-state" + (s.running ? (s.ready ? " running" : " starting") : "");
-  stateEl.textContent = s.running ? (s.ready ? "servidor no ar" : "iniciando…") : "parado";
-  $("host-start").hidden = s.running;
-  $("host-stop").hidden = !s.running;
-  $("host-enter").hidden = !s.ready;
-
-  const addrs = $("host-addrs");
-  addrs.replaceChildren();
-  if (s.ready) {
-    const targets = [
-      { label: "Neste PC", host: "127.0.0.1" },
-      ...(s.lan || []).map((a) => ({ label: a.name, host: a.address })),
-    ];
-    for (const t of targets) {
-      const link = shareLink(`http://${t.host}:${s.port}`);
-      const row = el("div", "host-addr");
-      row.append(el("span", "ha-link", link));
-      const copy = el("button", "ha-copy icon-btn");
-      copy.append(icon("link", 13));
-      copy.title = "Copiar";
-      copy.addEventListener("click", () => {
-        navigator.clipboard?.writeText(link);
-        toast("Link copiado", "success");
-      });
-      row.append(copy);
-      addrs.append(row);
-    }
-  }
-  hydrateIcons(addrs);
-}
-
-$("host-start").addEventListener("click", async () => {
-  $("auth-error3").textContent = "";
-  $("host-log").textContent = "";
-  await window.mula.host.start({ name: $("host-name").value.trim() || "Meu servidor Mulla Cord" });
-  clearInterval(hostPollTimer);
-  hostPollTimer = setInterval(async () => {
-    const s = await window.mula.host.status();
-    renderHostStatus(s);
-    if (s.ready) clearInterval(hostPollTimer);
-  }, 800);
-});
-$("host-stop").addEventListener("click", async () => {
-  clearInterval(hostPollTimer);
-  renderHostStatus(await window.mula.host.stop());
-});
-$("host-enter").addEventListener("click", () => pickServer(`http://127.0.0.1:8787`, {}));
-
 // ================= AUTH: boot inicial =================
 window.addEventListener("DOMContentLoaded", async () => {
-  renderKnownServers();
-  showAuthStep("servers");
-  startLanDiscovery();
+  try { community = await window.mula?.community?.get?.(); } catch {}
+  if (!community) {
+    showAuthStep("welcome");
+    $("auth-error").textContent = "Abra pelo app Mulla Cord.";
+    hideSplash();
+    return;
+  }
 
-  const last = knownServers()[0] || (localStorage.getItem("mula.server") && getServer(localStorage.getItem("mula.server")));
-  if (last && last.token) {
-    try { await boot(last.url, last.token); return; }
-    catch { clearServerToken(last.url); renderKnownServers(); }
+  await waitOwnNode(6000);
+  activeNode = await resolveActive(community);
+  activeNode.info = activeNode.info || await new Api(activeNode.url).info().catch(() => null);
+
+  const sess = getSession(community.id);
+  if (sess?.token) {
+    // token é assinado com a chave da comunidade — vale em qualquer nó dela.
+    // tenta o nó local primeiro; se ele ainda não sincronizou sua conta, tenta o de origem.
+    for (const url of [activeNode.url, sess.url].filter((u, i, a) => u && a.indexOf(u) === i)) {
+      try { await boot(url, sess.token); return; }
+      catch { /* tenta o próximo */ }
+    }
+    clearSession(community.id);
+  }
+
+  const setup = localStorage.getItem("mula.comm.setup." + community.id) === "1";
+  const isDefaultName = !community.name || community.name === "Minha comunidade";
+  const members = activeNode.info?.members || 0;
+  if (!setup && isDefaultName && members === 0) {
+    $("new-comm-name").value = "";
+    showAuthStep("welcome");
+    scanLanForCommunities();
+  } else {
+    await resolveAndShowCreds();
   }
   hideSplash();
 });
 
 window.mula?.onDeepLink?.((url) => {
-  const link = parseMulaLink(url);
-  if (link) { showAuthStep("servers"); pickServer(link.url, {}); }
+  if (String(url).includes("mula://join/")) {
+    $("join-invite").value = url;
+    showAuthStep("welcome");
+  }
 });
 
 $("logout").addEventListener("click", () => {
-  if (state.serverUrl) clearServerToken(state.serverUrl);
+  if (community) clearSession(community.id);
   state.gw?.close();
   state.voice?.leave();
   location.reload();
@@ -347,13 +337,18 @@ function renderMePanel() {
 // ================= BOOT =================
 async function boot(url, token) {
   state.serverUrl = url;
+  state.community = community;
   state.api = new Api(url, token);
   state.me = await state.api.me();          // valida o token (401 => catch no chamador)
-  rememberServer({ url, token });
+  if (community) {
+    saveSession(community.id, { token, url, node_id: activeNode?.info?.node_id || null });
+    localStorage.setItem("mula.comm.setup." + community.id, "1");
+  }
 
   $("auth").hidden = true;
   $("app").hidden = false;
   hideSplash();
+  initSignalWaves();
   refreshMeIdentity();
   hydrateIcons();
 
@@ -363,6 +358,33 @@ async function boot(url, token) {
   wireGateway(state.gw);
   state.gw.connect();
   initGameDetection();
+
+  // entrou por um peer? migra pro nó local assim que ele terminar de sincronizar
+  if (!url.includes("127.0.0.1")) migrateToLocalWhenReady(token);
+}
+
+async function migrateToLocalWhenReady(token) {
+  const local = SELF_URL;
+  toast("Sincronizando esta comunidade no seu PC…", "info");
+  for (let i = 0; i < 40; i++) {
+    await new Promise((r) => setTimeout(r, 3000));
+    if (state.serverUrl === local) return;
+    try {
+      const info = await new Api(local).info();
+      if (info.community_id !== community?.id) continue;
+      const me = await new Api(local, token).me();   // nó local já conhece minha conta?
+      if (!me?.id) continue;
+      state.serverUrl = local;
+      state.api = new Api(local, token);
+      saveSession(community.id, { token, url: local });
+      state.gw?.close();
+      state.gw = new Gateway(local, token);
+      wireGateway(state.gw);
+      state.gw.connect();
+      toast("Pronto — tudo sincronizado neste PC", "success");
+      return;
+    } catch { /* ainda não */ }
+  }
 }
 
 // ================= DETECÇÃO DE JOGO =================
@@ -397,18 +419,39 @@ function renderConnStatus() {
   s.className = { open: "", connecting: "reconnecting", reconnecting: "reconnecting", closed: "off" }[gw.state] || "";
   s.replaceChildren();
   if (gw.state === "open") {
-    s.append(el("span", null, "conectado"));
+    s.append(el("span", null, "no ar"));
     if (gw.latency != null) s.append(el("span", "lat", ` · ${gw.latency} ms`));
   } else if (gw.state === "reconnecting" || gw.state === "connecting") {
-    s.append(el("span", null, "reconectando…"));
+    s.append(el("span", null, "sintonizando…"));
     const btn = el("button", "");
     btn.id = "reconnect-now";
     btn.textContent = "tentar agora";
     btn.addEventListener("click", () => gw.reconnectNow());
     s.append(btn);
   } else {
-    s.append(el("span", null, "desconectado"));
+    s.append(el("span", null, "fora do ar"));
   }
+  renderHeaderReadout();
+}
+
+// telemetria da conexão no canto do header do canal
+function renderHeaderReadout() {
+  const box = $("conn-readout");
+  const gw = state.gw;
+  if (!box || !gw || !state.activeChannelId) { if (box) box.hidden = true; return; }
+  box.hidden = false;
+  box.classList.toggle("off", gw.state === "closed");
+  box.classList.toggle("tuning", gw.state === "reconnecting" || gw.state === "connecting");
+  const parts = [];
+  parts.push(gw.state === "open" ? "no ar" : gw.state === "closed" ? "fora do ar" : "sintonizando");
+  if (gw.state === "open" && gw.latency != null) parts.push(`${gw.latency} ms`);
+  const here = state.online?.size;
+  if (here) parts.push(`${here} no ar`);
+  box.replaceChildren(el("span", "seg-dot"));
+  parts.forEach((p, i) => {
+    if (i) box.append(el("span", "cr-sep", "·"));
+    box.append(el("span", null, p));
+  });
 }
 
 // ================= GATEWAY =================
@@ -448,6 +491,8 @@ function wireGateway(gw) {
   });
 
   gw.on("message_create", (d) => {
+    const mine = d.message.author?.id === state.me.id;
+    if (!mine) pulseSignal(mentionsMe(d.message.content) ? 1.5 : 0.85);
     if (d.message.channel_id === state.activeChannelId) appendMessage(d.message);
     else markUnread(d.message.channel_id, mentionsMe(d.message.content));
   });
@@ -463,6 +508,7 @@ function wireGateway(gw) {
 
   gw.on("typing", (d) => {
     if (d.channel_id !== state.activeChannelId || d.user_id === state.me.id) return;
+    pulseSignal(0.28);
     $("typing").textContent = `${memberName(d.user_id)} está digitando…`;
     clearTimeout(typingClear);
     typingClear = setTimeout(() => ($("typing").textContent = ""), 3000);
@@ -588,6 +634,9 @@ function setView(kind, guildId = null) {
   $("channel-topic").hidden = true;
   $("messages").hidden = true;
   $("empty-state").hidden = false;
+  if ($("wave-spine")) $("wave-spine").hidden = true;
+  if ($("conn-readout")) $("conn-readout").hidden = true;
+  requestAnimationFrame(refreshWaves);
   $("composer-input").disabled = true;
   $("composer").querySelector(".send-btn").disabled = true;
   $("btn-voice").hidden = true;
@@ -633,6 +682,8 @@ function renderView() {
   const noChannel = !state.activeChannelId;
   $("empty-state").hidden = !noChannel;
   $("messages").hidden = noChannel;
+  if ($("wave-spine")) $("wave-spine").hidden = noChannel;
+  requestAnimationFrame(refreshWaves);
 }
 
 // ================= HOME SIDEBAR =================
@@ -818,6 +869,9 @@ async function openChannel(id) {
 
   $("empty-state").hidden = true;
   $("messages").hidden = false;
+  if ($("wave-spine")) $("wave-spine").hidden = false;
+  requestAnimationFrame(refreshWaves);
+  renderHeaderReadout();
   $("composer-input").disabled = !canSend;
   $("attach-btn").disabled = !canSend;
   $("composer-input").placeholder = canSend ? "Mensagem" : "Você não pode enviar mensagens neste canal";
@@ -1106,6 +1160,7 @@ $("composer").addEventListener("submit", async (e) => {
     state.gw.sendMessage(cid, text);
   }
   input.value = "";
+  pulseSignal(0.9);
   updateSendEnabled();
   closeMentionPop();
 });
@@ -1289,6 +1344,7 @@ async function startVoice(channelId, label) {
   v.on("state", renderVoice);
   try {
     await v.start();
+    setSignalLevel(0.5);
     $("voice-panel").hidden = false;
     $("voice-title").dataset.name = label || "Chamada de voz";
     $("btn-screen").hidden = false;
@@ -1304,6 +1360,7 @@ async function startVoice(channelId, label) {
 $("btn-leave-voice").addEventListener("click", () => {
   state.voice?.leave();
   state.voice = null;
+  setSignalLevel(0);
   $("voice-panel").hidden = true;
   $("btn-screen").hidden = true;
   $("btn-voice").hidden = state.view.kind === "guild";

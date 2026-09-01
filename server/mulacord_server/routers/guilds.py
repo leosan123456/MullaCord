@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
 from ..database import db
+from ..replication import next_id
 from ..deps import CurrentUser
 from ..guilds_service import (
     create_default_layout,
@@ -94,11 +95,11 @@ async def my_guilds(user=CurrentUser) -> list[dict]:
 
 @router.post("/guilds", status_code=status.HTTP_201_CREATED)
 async def create_guild(body: GuildCreate, user=CurrentUser) -> dict:
-    cur = await db.execute(
-        "INSERT INTO guilds (name, icon, owner_id) VALUES (?, ?, ?)",
-        (body.name, body.icon, user["id"]),
+    gid = await next_id()
+    await db.execute(
+        "INSERT INTO guilds (id, name, icon, owner_id) VALUES (?, ?, ?, ?)",
+        (gid, body.name, body.icon, user["id"]),
     )
-    gid = cur.lastrowid
     await db.execute(
         "INSERT INTO guild_members (guild_id, user_id) VALUES (?, ?)", (gid, user["id"])
     )
@@ -246,12 +247,13 @@ async def create_category(gid: int, body: CategoryCreate, user=CurrentUser) -> d
     pos = await db.fetchone(
         "SELECT COALESCE(MAX(position), -1) + 1 AS p FROM categories WHERE guild_id = ?", (gid,)
     )
-    cur = await db.execute(
-        "INSERT INTO categories (guild_id, name, position) VALUES (?, ?, ?)",
-        (gid, body.name, pos["p"]),
+    cat_id = await next_id()
+    await db.execute(
+        "INSERT INTO categories (id, guild_id, name, position) VALUES (?, ?, ?, ?)",
+        (cat_id, gid, body.name, pos["p"]),
     )
     await _push_guild(gid)
-    return {"id": cur.lastrowid, "name": body.name, "position": pos["p"]}
+    return {"id": cat_id, "name": body.name, "position": pos["p"]}
 
 
 @router.delete("/categories/{cat_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -271,13 +273,14 @@ async def create_channel(gid: int, body: ChannelCreate, user=CurrentUser) -> dic
     pos = await db.fetchone(
         "SELECT COALESCE(MAX(position), -1) + 1 AS p FROM channels WHERE guild_id = ?", (gid,)
     )
-    cur = await db.execute(
-        """INSERT INTO channels (type, name, topic, guild_id, category_id, position)
-           VALUES (?, ?, ?, ?, ?, ?)""",
-        (body.type, body.name, body.topic, gid, body.category_id, pos["p"]),
+    cid_new = await next_id()
+    await db.execute(
+        """INSERT INTO channels (id, type, name, topic, guild_id, category_id, position)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        (cid_new, body.type, body.name, body.topic, gid, body.category_id, pos["p"]),
     )
     from ..guilds_service import _channel
-    ch = await db.fetchone("SELECT * FROM channels WHERE id = ?", (cur.lastrowid,))
+    ch = await db.fetchone("SELECT * FROM channels WHERE id = ?", (cid_new,))
     payload = _channel(ch, [])
     await manager.broadcast_guild(gid, {"t": "channel_create", "channel": payload})
     return payload
@@ -349,13 +352,14 @@ async def create_role(gid: int, body: RoleCreate, user=CurrentUser) -> dict:
     pos = await db.fetchone(
         "SELECT COALESCE(MAX(position), 0) + 1 AS p FROM roles WHERE guild_id = ?", (gid,)
     )
-    cur = await db.execute(
-        """INSERT INTO roles (guild_id, name, color, permissions, position, hoist, mentionable)
-           VALUES (?, ?, ?, ?, ?, ?, ?)""",
-        (gid, body.name, body.color, body.permissions, pos["p"], int(body.hoist), int(body.mentionable)),
+    rid = await next_id()
+    await db.execute(
+        """INSERT INTO roles (id, guild_id, name, color, permissions, position, hoist, mentionable)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+        (rid, gid, body.name, body.color, body.permissions, pos["p"], int(body.hoist), int(body.mentionable)),
     )
     await _push_guild(gid)
-    return {"id": cur.lastrowid}
+    return {"id": rid}
 
 
 @router.patch("/roles/{rid}")

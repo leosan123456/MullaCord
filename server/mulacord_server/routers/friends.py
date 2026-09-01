@@ -4,6 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, status
 
 from ..database import db
+from ..replication import next_id
 from ..deps import CurrentUser, public_user
 from ..realtime.manager import manager
 from ..schemas import FriendRequestIn
@@ -76,8 +77,8 @@ async def send_request(body: FriendRequestIn, user=CurrentUser) -> dict:
         raise HTTPException(status.HTTP_409_CONFLICT, "Pedido já enviado")
 
     await db.execute(
-        "INSERT INTO friendships (requester_id, addressee_id, status) VALUES (?, ?, 'pending')",
-        (user["id"], target["id"]),
+        "INSERT INTO friendships (id, requester_id, addressee_id, status) VALUES (?, ?, ?, 'pending')",
+        (await next_id(), user["id"], target["id"]),
     )
     await manager.notify_user(
         target["id"], {"t": "friend_request", "user": public_user(user)}

@@ -1,6 +1,7 @@
 """Acesso ao SQLite via aiosqlite. Sem ORM — SQL direto e transparente."""
 from __future__ import annotations
 
+import asyncio
 from typing import Any, Iterable, Optional
 
 import aiosqlite
@@ -148,6 +149,10 @@ class Database:
     def __init__(self, path: str) -> None:
         self._path = path
         self._conn: Optional[aiosqlite.Connection] = None
+        # Serializa todas as escritas. A replicação segura esse lock durante um
+        # lote de apply pra nenhuma escrita local se intercalar (os triggers do
+        # oplog ficam "desligados" durante o apply e voltariam a disparar no meio).
+        self.write_lock = asyncio.Lock()
 
     async def connect(self) -> None:
         self._conn = await aiosqlite.connect(self._path)
@@ -181,6 +186,11 @@ class Database:
         return self._conn
 
     async def execute(self, sql: str, params: Iterable[Any] = ()) -> aiosqlite.Cursor:
+        async with self.write_lock:
+            return await self.execute_nolock(sql, params)
+
+    async def execute_nolock(self, sql: str, params: Iterable[Any] = ()) -> aiosqlite.Cursor:
+        """Igual a execute() mas sem pegar o write_lock — só pra quem já o segura."""
         cur = await self.conn.execute(sql, tuple(params))
         await self.conn.commit()
         return cur

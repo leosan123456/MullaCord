@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, status
 
 from ..database import db
 from ..deps import CurrentUser, public_user
+from ..replication import next_id
 from ..realtime.manager import manager
 from ..schemas import LoginIn, ProfilePatch, RegisterIn, TokenOut, UserOut
 from ..security import create_token, hash_password, verify_password
@@ -26,19 +27,21 @@ async def register(body: RegisterIn) -> dict:
     )
     if exists:
         raise HTTPException(status.HTTP_409_CONFLICT, "Usuário ou e-mail já cadastrado")
-    cur = await db.execute(
+    uid = await next_id()
+    await db.execute(
         """
-        INSERT INTO users (username, email, password_hash, display_name)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO users (id, username, email, password_hash, display_name)
+        VALUES (?, ?, ?, ?, ?)
         """,
         (
+            uid,
             body.username,
             email,
             hash_password(body.password),
             body.display_name or body.username,
         ),
     )
-    row = await db.fetchone("SELECT * FROM users WHERE id = ?", (cur.lastrowid,))
+    row = await db.fetchone("SELECT * FROM users WHERE id = ?", (uid,))
     return {
         "access_token": create_token(row["id"]),
         "user": UserOut(**public_user(row), email=_visible_email(row["email"])),

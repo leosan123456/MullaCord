@@ -1,5 +1,45 @@
 # Changelog
 
+## 1.3.0
+
+Novo modelo de conexão: **enxame auto-alimentado, sem nuvem e sem passo de "hospedar"**.
+
+### Modelo de conexão v2
+- **Nó local sempre no ar**: o app sobe o servidor em segundo plano ao abrir. Some
+  o botão "Hospedar meu servidor".
+- **Comunidade**: no primeiro uso você **cria uma comunidade**, **entra numa que
+  apareceu na rede local** (um clique) ou cola um convite `mula://join/…`. Cada
+  comunidade tem seu próprio banco (`%APPDATA%/Mulla Cord/communities/<id>/`).
+- **Coordenador eleito** por prioridade → tempo no ar → id, para quem o cliente
+  conecta enquanto o nó local ainda não sincronizou.
+- Descoberta LAN agora carrega `community_id` / prioridade / `started_at` / endereço público.
+
+### Enxame (replicação estilo torrent)
+- Todo nó guarda a **réplica completa** (contas, amigos, canais, cargos, mensagens,
+  anexos). O cliente fala sempre com o nó local (leitura instantânea).
+- **oplog por triggers** + **anti-entropia** (`/api/replica/sync`, ~8s) + **push
+  rápido** (0,5s). Conflito por **last-writer-wins** por linha. Compactação do log.
+- **IDs por faixa de nó** (não colidem entre nós offline); **token da comunidade**
+  (um login vale em qualquer nó); realtime dispara também nas escritas que chegam
+  replicadas (`_dispatch_realtime`).
+- `server/scripts/smoke_swarm.py`: 2 nós convergem em conta / amizade / DM / mensagem.
+
+### App
+- **Bandeja + iniciar com o Windows**: mantenha o app fechado mas o nó no ar como
+  "semente" do enxame (Perfil → Comunidade → Este dispositivo).
+- **UPnP best-effort**: tenta abrir a porta no roteador (SSDP + SOAP, sem dependência);
+  se conseguir, grava o endereço público e ele vai no convite.
+- Ao entrar por um peer, o app migra sozinho pro nó local quando ele termina de sincronizar.
+- Painel de comunidade (convite, endereço público, "este PC é o coordenador", sair).
+
+### Também
+- Redesenho da interface em torno da **linha de sinal** (a waveform reativa que
+  pulsa a cada mensagem/atividade), tipografia "readout" para telemetria, presença
+  como barra de sinal (transmitindo/silêncio) no lugar da bolinha verde.
+
+> Bancos anteriores à 1.3 ganham o log de replicação por *backfill* automático no
+> primeiro boot.
+
 ## 0.2.0
 
 Primeira versão com a marca **Mulla Cord** e binários prontos para usar.
