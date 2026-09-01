@@ -267,18 +267,33 @@ o app sobe sem janela. IPC: `prefs:get` / `prefs:set` (`window.mula.prefs`).
   Quando "frozen", os dados vão pra `%APPDATA%/Mulacord/server`.
   Registro de conta: `email` é opcional (gera um sintético `<user>@mulacord.local`
   escondido nas respostas); senha mínima de 6 caracteres.
-- **App** → electron-builder (`desktop/package.json` campo `build`), alvo NSIS.
-  `productName: "Mulla Cord"`, `executableName: "MullaCord"`. `extraResources`
-  bundla `server/dist/mulacord-server` em `resources/server/`.
-  `npm run dist` = `build:server` (PyInstaller) + `scripts/postbuild.js`
-  (`png-to-ico` → `build/icon.ico`) + `electron-builder --win`. Saída:
-  `desktop/dist-installer/Mulla Cord Setup <versão>.exe`.
-- **Ícone**: `signAndEditExecutable:false` (o cache `winCodeSign` precisa do Modo
-  de Desenvolvedor do Windows para os symlinks) — o `.exe` fica com o ícone padrão
-  do Electron, mas `build/installer.nsh` (`customInstall`) copia o `icon.ico` para
-  a pasta de instalação e cria os atalhos da área de trabalho e do menu Iniciar
-  ("Mulla Cord") apontando `IconLocation` para ele.
-- O app instalado sobe o servidor bundlado no modo host (`resources/server/mulacord-server.exe`).
+- **App** → electron-builder, alvos `nsis` (assistido) + `portable`.
+  `extraResources` bundla `server/dist/mulacord-server` em `resources/server/`.
+  `npm run dist` = `cert` → `build:server` (PyInstaller) → `prep`
+  (`obfuscate.js` gera `src.dist/`, `make-installer-art.js` gera os BMP,
+  `postbuild.js` gera o `.ico`) → `electron-builder --win`.
+- **Instalador** (`nsis`, `oneClick:false`, `perMachine:false`, `allowElevation:false`):
+  instala em `%LOCALAPPDATA%\Programs\MullaCord` sem admin. Arte da marca em
+  `build/installerSidebar.bmp` / `installerHeader.bmp`; `build/installer.nsh`
+  (`customInit`) mostra `build/splash.bmp` com fade via `AdvSplash` (plugin nativo
+  do NSIS). Páginas: welcome → licença (`../LICENSE`) → pasta → progresso → finish
+  (com "Executar o Mulla Cord"). `customInstall` copia o `icon.ico` e cria os
+  atalhos "Mulla Cord" apontando `IconLocation` para ele.
+- **Assinatura** (`scripts/sign.js`, hook `win.signtoolOptions.sign`... na verdade
+  `afterPack` + `afterAllArtifactBuild` chamam `sign.js` direto pra não acionar o
+  download do `winCodeSign`, que falha neste Windows por symlinks): `signtool`
+  do Windows SDK assina `MullaCord.exe`, `mulacord-server.exe`, o instalador e o
+  portátil com `build/MullaCord-CodeSign.pfx` (auto-assinado, `scripts/make-cert.ps1`)
+  + timestamp RFC3161. `signAndEditExecutable:false` fica ligado (o EB não assina
+  nem faz rcedit — a gente cuida).
+- **Blindagem** (`scripts/afterPack.js`): Electron Fuses V1 — `RunAsNode:false`
+  (o `ELECTRON_RUN_AS_NODE` do terminal deixa de quebrar o app empacotado),
+  `EnableNodeOptionsEnvironmentVariable:false`, `EnableNodeCliInspectArguments:false`,
+  `OnlyLoadAppFromAsar:true`, `EnableEmbeddedAsarIntegrityValidation:true`,
+  `EnableCookieEncryption:true`. Renderer ofuscado (`javascript-obfuscator`,
+  `src.dist/` empacotado como `src/` via `files` from/to). Fuses aplicados antes
+  da assinatura, senão a assinatura quebra.
+- O app instalado sobe o nó local (`resources/server/mulacord-server.exe`) no launch.
 
 ## Fases
 

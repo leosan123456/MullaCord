@@ -1,5 +1,35 @@
 # Changelog
 
+## 1.4.0
+
+Instalador com a cara da marca + blindagem do pacote.
+
+### Instalador
+- **Assistido e ilustrado**: splash com fade na abertura (onda de sinal +
+  logo), painel lateral e cabecalho da marca, paginas de licenca / pasta /
+  progresso / conclusao, atalho "Abrir o Mulla Cord agora".
+- **Sem UAC**: instala em `%LOCALAPPDATA%` (sem pedir admin), da pra trocar a pasta.
+- `desktop/scripts/make-installer-art.js` gera a arte (BMP) a partir de HTML.
+
+### Assinatura (Authenticode)
+- Todos os `.exe` (app, servidor embutido, instalador, portatil) sao assinados
+  com um certificado do projeto, com timestamp RFC3161.
+- `npm run cert` gera `build/MullaCord-CodeSign.pfx` (fora do git) +
+  `build/MullaCord-PublicCert.cer` (publico).
+- **Nao remove o aviso do SmartScreen** (so um cert OV/EV pago com reputacao faz
+  isso). O que da: publisher verificavel "Mulla Cord", deteccao de adulteracao,
+  e quem quiser confiar importa o `.cer`. Passo a passo em `docs/INSTALL.md`.
+
+### Blindagem do codigo
+- **Electron Fuses**: sem `RunAsNode`, sem `NODE_OPTIONS`, sem `--inspect`, so
+  carrega o app do asar, valida a integridade do asar embutido, cookies
+  criptografados. (Efeito colateral bom: o `ELECTRON_RUN_AS_NODE` do terminal
+  nao quebra mais o app empacotado.)
+- **Ofuscacao** do JS do renderer no pacote (`src/` continua legivel no dev;
+  `scripts/obfuscate.js` gera `src.dist/`). Nomes sem sentido, strings
+  codificadas, control-flow leve. Nao e criptografia - a chave sempre viaja com
+  o app - mas inspecao casual (F12) nao ve a logica limpa.
+
 ## 1.3.0
 
 Novo modelo de conexão: **enxame auto-alimentado, sem nuvem e sem passo de "hospedar"**.

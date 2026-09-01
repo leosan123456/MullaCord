@@ -26,11 +26,17 @@ Baixe da pasta [`releases/`](../releases/) do repositório:
 
 | Opção | Arquivo | Como usar |
 |---|---|---|
-| **Instalar** | `MullaCord-Setup-1.3.0.exe` | Dois cliques → instala em segundos e cria o atalho **Mulla Cord** na área de trabalho e no menu Iniciar. |
-| **Portátil** | `MullaCord-portable-1.3.0.exe` | Dois cliques e o app abre. Nada é instalado; pode deixar num pen drive. |
+| **Instalar** | `MullaCord-Setup-1.4.0.exe` | Assistente com a cara da marca (licença → pasta → progresso). Instala em `%LOCALAPPDATA%` **sem pedir admin** e cria os atalhos **Mulla Cord**. |
+| **Portátil** | `MullaCord-portable-1.4.0.exe` | Dois cliques e o app abre. Nada é instalado; pode deixar num pen drive. |
 
-> **SmartScreen** ("aplicativo não reconhecido"): os `.exe` não têm assinatura
-> digital paga. Clique em **Mais informações → Executar assim mesmo**.
+> **SmartScreen** ("aplicativo não reconhecido"): os `.exe` são assinados com um
+> certificado do próprio projeto (não é um certificado pago com reputação), então
+> o Windows ainda avisa. Clique em **Mais informações → Executar assim mesmo**.
+>
+> Quer sumir com o aviso? Importe **`releases/MullaCord-PublicCert.cer`** em
+> *Certificados → Autoridades de Certificação Raiz Confiáveis* (Win+R →
+> `certmgr.msc`). Aí a assinatura passa a ser reconhecida como **"Mulla Cord"** e
+> o Windows confia. A assinatura também garante que o `.exe` não foi adulterado.
 
 O app já traz o servidor embutido — não precisa instalar Python nem nada. Ao abrir,
 ele sobe um **nó** em segundo plano sozinho.
@@ -132,15 +138,16 @@ npm start
 cd ..\server
 .\.venv\Scripts\python.exe -m pip install -r requirements-build.txt
 cd ..\desktop
-npm run dist       # -> desktop/dist-installer/MullaCord-Setup-<versão>.exe
-                   #    e MullaCord-portable-<versão>.exe
+npm install        # inclui javascript-obfuscator e @electron/fuses
+npm run dist       # cert -> servidor -> ofusca + arte -> instalador assinado
+                   # -> desktop/dist-installer/MullaCord-{Setup,portable}-<versão>.exe
 ```
 
 ## 8. Problemas comuns
 
 | Problema | Solução |
 |---|---|
-| Windows bloqueou o instalador | SmartScreen — **Mais informações → Executar assim mesmo** |
+| Windows bloqueou o instalador | SmartScreen — **Mais informações → Executar assim mesmo**. Pra sumir de vez: importe `releases/MullaCord-PublicCert.cer` nas Autoridades de Certificação Raiz Confiáveis |
 | Não aparece nenhuma comunidade na rede | Mesma rede? Firewall liberado? Algum amigo com o app aberto? Peça um convite e cole |
 | Amigo de outra cidade não conecta | UPnP falhou → port forwarding da 8787 + endereço público no painel de Comunidade, ou VPN |
 | Sem áudio na chamada | Permissão de microfone no Windows; conferir dispositivo em Configurações de voz |

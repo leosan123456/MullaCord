@@ -49,11 +49,14 @@ Prontos para usar, em [`releases/`](releases/) — nenhum Python/Node necessári
 
 | Arquivo | O que faz |
 |---|---|
-| [`MullaCord-Setup-1.3.0.exe`](releases/MullaCord-Setup-1.3.0.exe) | **Instalador rápido** — 1 clique, instala e cria os atalhos "Mulla Cord" (área de trabalho + menu Iniciar) |
-| [`MullaCord-portable-1.3.0.exe`](releases/MullaCord-portable-1.3.0.exe) | **Portátil** — dois cliques e abre, sem instalar nada |
+| [`MullaCord-Setup-1.4.0.exe`](releases/MullaCord-Setup-1.4.0.exe) | **Instalador** — assistente com a cara da marca, instala sem admin e cria os atalhos "Mulla Cord" |
+| [`MullaCord-portable-1.4.0.exe`](releases/MullaCord-portable-1.4.0.exe) | **Portátil** — dois cliques e abre, sem instalar nada |
+| [`MullaCord-PublicCert.cer`](releases/MullaCord-PublicCert.cer) | Certificado público do projeto — importe nas *Autoridades Raiz Confiáveis* pra sumir com o aviso do SmartScreen |
 
-> SmartScreen ("app não reconhecido"): os `.exe` não têm assinatura digital paga —
-> **Mais informações → Executar assim mesmo**.
+> Os `.exe` são assinados (Authenticode) com um certificado do projeto — publisher
+> "Mulla Cord", com timestamp, detecta adulteração. **Não** é um certificado pago
+> com reputação, então o SmartScreen ainda avisa: **Mais informações → Executar
+> assim mesmo**, ou importe o `.cer` acima. Detalhes em [docs/INSTALL.md](docs/INSTALL.md).
 
 Passo a passo para novos usuários: [docs/INSTALL.md](docs/INSTALL.md).
 
@@ -132,21 +135,29 @@ cd server
 .\.venv\Scripts\python.exe -m pip install -r requirements-build.txt   # PyInstaller
 
 cd ..\desktop
-npm run dist      # empacota o servidor + gera instalador + portátil
+npm install                # inclui javascript-obfuscator e @electron/fuses
+npm run dist               # cert -> servidor (PyInstaller) -> ofusca + arte -> electron-builder
 ```
+
+`npm run dist` faz, em ordem: `npm run cert` (gera `build/MullaCord-CodeSign.pfx`
+uma vez), `build:server` (PyInstaller), `prep` (`obfuscate.js` gera `src.dist/`,
+`make-installer-art.js` gera os BMP, `postbuild.js` gera o `.ico`), e o
+electron-builder. O `afterPack` aplica os Electron Fuses e assina o servidor
+embutido; o `afterAllArtifactBuild` assina o instalador e o portátil.
 
 Saída em `desktop/dist-installer/`:
 
-- `MullaCord-Setup-<versão>.exe` — instalador NSIS de 1 clique (cria os atalhos "Mulla Cord")
-- `MullaCord-portable-<versão>.exe` — executável portátil, sem instalação
+- `MullaCord-Setup-<versão>.exe` — instalador assistido com a marca
+- `MullaCord-portable-<versão>.exe` — portátil, sem instalação
 
-Os dois já incluem o app **e** o servidor. Não são assinados (sem certificado pago).
-Depois de gerar, copie os `.exe` para `releases/` para versionar (usam Git LFS).
+Ambos incluem app + servidor e são assinados (Authenticode, self-signed +
+timestamp). Copie os dois `.exe` **e** `build/MullaCord-PublicCert.cer` para
+`releases/` (os `.exe` usam Git LFS).
 
 **Fluxo de atualização** (sempre que fechar um conjunto de mudanças): bump da versão
 em `desktop/package.json` **e** `server/mulacord_server/__init__.py` → entrada no
-`CHANGELOG.md` → `npm run dist` → copiar os `.exe` para `releases/` → commit + tag
-`vX.Y.Z`.
+`CHANGELOG.md` → `npm run dist` → copiar `.exe` + `.cer` para `releases/` → commit
++ `git tag -a vX.Y.Z` → `git push` main **e** a tag.
 
 ## Documentação
 
