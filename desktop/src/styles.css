@@ -536,6 +536,7 @@ button.full { width: 100%; margin-top: 8px; }
   color: var(--text-faint); margin: 18px 8px 7px;
 }
 .section-head .icon-btn { width: 22px; height: 22px; }
+.section-head-actions { display: flex; align-items: center; gap: 2px; }
 
 .list { list-style: none; overflow-y: auto; display: flex; flex-direction: column; gap: 1px; }
 .list li {
@@ -1004,6 +1005,13 @@ button.full { width: 100%; margin-top: 8px; }
   text-indent: 0.22em;
   background: var(--bg-input-solid); border: 1px dashed var(--border-strong);
   padding: 16px; border-radius: 12px; margin: 12px 0; color: var(--accent);
+}
+
+.share-invite {
+  font-size: 12px; font-variant-numeric: tabular-nums;
+  word-break: break-all; user-select: all; line-height: 1.5;
+  background: var(--bg-input-solid); border: 1px dashed var(--border-strong);
+  padding: 12px 14px; border-radius: 12px; margin: 10px 0; color: var(--accent);
 }
 
 .perm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; margin: 10px 0 14px; }

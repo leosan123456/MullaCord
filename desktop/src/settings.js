@@ -193,6 +193,70 @@ function communityControls(closeModal) {
   return box;
 }
 
+// ---------------------------------------------------------------- compartilhar comunidade
+// Painel dedicado (acessível pelo botão na sidebar "Conversas"): mostra o convite
+// mula://join/… e os endereços deste nó, cada um com botão de copiar.
+export function openShareCommunity() {
+  const { body, close } = overlay("Compartilhar comunidade", 460);
+  const c = state.community || {};
+
+  body.append(el("p", "field-hint",
+    `Quem abre o Mulla Cord na mesma rede que você entra em "${c.name || "sua comunidade"}" sozinho. ` +
+    `Para amigos de outra rede, mande o convite ou um dos endereços abaixo.`));
+
+  const copyRow = (value, label) => {
+    const wrap = el("div", "host-addr");
+    wrap.append(el("span", "ha-link", value));
+    const b = el("button", "ha-copy icon-btn");
+    b.append(icon("link", 13));
+    b.title = label || "Copiar";
+    b.addEventListener("click", async () => {
+      try { await navigator.clipboard?.writeText(value); toast("Copiado", "success"); }
+      catch { toast("Não consegui copiar", "error"); }
+    });
+    wrap.append(b);
+    return wrap;
+  };
+
+  body.append(el("div", "grp", "Convite"));
+  const inviteBox = el("div", "share-invite", "gerando convite…");
+  body.append(inviteBox);
+  const inviteActions = el("div", "row");
+  const copyInvite = el("button", "primary", "Copiar convite");
+  copyInvite.disabled = true;
+  inviteActions.append(copyInvite);
+  body.append(inviteActions);
+
+  const addrsGrp = el("div", "grp", "Endereços deste nó");
+  const addrsBox = el("div", "host-addrs");
+  body.append(addrsGrp, addrsBox);
+
+  window.mula.community.invite().then((inv) => {
+    inviteBox.textContent = inv.link;
+    copyInvite.disabled = false;
+    copyInvite.addEventListener("click", async () => {
+      try { await navigator.clipboard?.writeText(inv.link); toast("Convite copiado", "success"); }
+      catch { toast("Não consegui copiar", "error"); }
+    });
+
+    const addrs = (inv.addrs || []).filter(Boolean);
+    if (addrs.length) {
+      for (const a of addrs) addrsBox.append(copyRow(a, "Copiar endereço"));
+    } else {
+      addrsBox.append(el("p", "field-hint",
+        "Só alcançável pela rede local por enquanto. Configure um endereço público em Meu perfil → Comunidade para amigos fora da sua rede."));
+    }
+  }).catch(() => {
+    inviteBox.textContent = "convite indisponível";
+  });
+
+  const actions = el("div", "modal-actions");
+  const done = el("button", "ghost", "Fechar");
+  done.addEventListener("click", close);
+  actions.append(done);
+  body.append(actions);
+}
+
 // ---------------------------------------------------------------- status de jogo
 function gameControls() {
   const wrap = el("div", "game-cfg");

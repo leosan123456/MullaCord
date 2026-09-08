@@ -11,7 +11,7 @@ import {
   renderMemberList,
   openGuildMenuAction,
 } from "./guild.js";
-import { openUserSettings, openVoiceSettings } from "./settings.js";
+import { openUserSettings, openVoiceSettings, openShareCommunity } from "./settings.js";
 import {
   resolveActive, getSession, saveSession, clearSession, SELF_URL,
 } from "./community.js";
@@ -297,6 +297,7 @@ $("logout").addEventListener("click", () => {
   location.reload();
 });
 
+$("share-community").addEventListener("click", () => openShareCommunity());
 $("open-user-settings").addEventListener("click", () => openUserSettings());
 $("open-voice-settings").addEventListener("click", () => openVoiceSettings(state.voice));
 $("btn-mute-quick").addEventListener("click", () => state.voice?.toggleMute());
