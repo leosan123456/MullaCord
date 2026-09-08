@@ -46,12 +46,17 @@ jobs:
         with:
           python-version: "3.12"
 
+      # Instala DENTRO da venv (server/.venv) — o scripts/build-server.js usa
+      # essa venv pro PyInstaller. `python -m venv` sozinho nao ativa nada.
       - name: Build deps do servidor (PyInstaller)
         working-directory: server
+        shell: bash
         run: |
           python -m venv .venv
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt -r requirements-build.txt
+          if [ -f .venv/bin/python ]; then PY=.venv/bin/python; else PY=.venv/Scripts/python.exe; fi
+          "$PY" -m pip install --upgrade pip
+          "$PY" -m pip install -r requirements.txt -r requirements-build.txt
+          "$PY" -c "import PyInstaller, uvicorn, fastapi; print('venv OK')"
 
       - name: Deps do desktop
         working-directory: desktop
