@@ -432,7 +432,7 @@ async def _dispatch_realtime(applied: list[dict]) -> None:
 # ---------------------------------------------------------------- peers + gossip
 async def note_peer(url: str, community: str | None = None) -> None:
     url = url.rstrip("/")
-    if not url or "127.0.0.1" in url or "localhost" in url:
+    if not url or "127.0.0.1" in url or "localhost" in url or url == _own_address().rstrip("/"):
         return
     now = int(time.time())
     await db.execute(
@@ -475,20 +475,67 @@ async def _post_json(url: str, body: dict, timeout: float = 8.0) -> dict | None:
     return await anyio.to_thread.run_sync(lambda: _http_post_json(url, body, timeout))
 
 
-def _own_address() -> str:
-    pub = os.environ.get("MULACORD_PUBLIC_HOST", "").strip()
-    if pub:
-        return pub if pub.startswith("http") else f"http://{pub}"
-    port = os.environ.get("MULACORD_PORT", "8787")
+def _lan_ip() -> str:
+    """Melhor palpite do IP deste nó na LAN.
+
+    O truque do socket UDP pega a rota default — que numa máquina com VMware/
+    Hyper-V/WSL/VPN costuma ser uma NIC virtual. Então preferimos um IP de faixa
+    privada "de casa" (192.168/24, 10/8, 172.16-31) que NÃO seja das faixas
+    típicas de adaptador virtual (192.168.56 VirtualBox, 172.17-20 Docker/WSL).
+    """
+    import socket
+
+    def _priv(ip: str) -> int:
+        p = ip.split(".")
+        if len(p) != 4:
+            return -1
+        a, b = int(p[0]), int(p[1])
+        if a == 192 and b == 168:
+            return 0 if p[2] == "56" else 3          # 192.168.x (56 = VirtualBox)
+        if a == 10:
+            return 2
+        if a == 172 and 16 <= b <= 31:
+            return 0 if 17 <= b <= 20 else 1         # 172.17-20 = Docker/WSL
+        return -1
+
+    best, best_score = "", -1
     try:
-        import socket
+        for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+            ip = info[4][0]
+            if ip.startswith("127."):
+                continue
+            s = _priv(ip)
+            if s > best_score:
+                best, best_score = ip, s
+    except OSError:
+        pass
+    if best_score >= 1:
+        return best
+    try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
         ip = s.getsockname()[0]
         s.close()
-        return f"http://{ip}:{port}"
+        return ip
     except OSError:
-        return ""
+        return best
+
+
+_own_addr_cache: str | None = None
+
+
+def _own_address() -> str:
+    global _own_addr_cache
+    if _own_addr_cache is not None:
+        return _own_addr_cache
+    pub = os.environ.get("MULACORD_PUBLIC_HOST", "").strip()
+    if pub:
+        _own_addr_cache = pub if pub.startswith("http") else f"http://{pub}"
+    else:
+        port = os.environ.get("MULACORD_PORT", "8787")
+        ip = _lan_ip()
+        _own_addr_cache = f"http://{ip}:{port}" if ip else ""
+    return _own_addr_cache
 
 
 async def _sync_with(peer: str) -> None:
@@ -539,7 +586,8 @@ async def _prune_oplog() -> None:
 
 
 async def _gossip_loop() -> None:
-    await asyncio.sleep(4)
+    await asyncio.sleep(2)
+    base = int(os.environ.get("MULACORD_GOSSIP_SECONDS", "8"))
     n = 0
     while True:
         try:
@@ -549,7 +597,9 @@ async def _gossip_loop() -> None:
                 await _prune_oplog()
         except Exception as exc:  # noqa: BLE001
             log.debug("gossip: %s", exc)
-        await asyncio.sleep(int(os.environ.get("MULACORD_GOSSIP_SECONDS", "8")))
+        # os primeiros ~30s são rápidos (2s) pra quem acabou de entrar ver todo
+        # mundo logo; depois volta pro intervalo normal.
+        await asyncio.sleep(2 if n < 15 else base)
 
 
 async def _push_loop() -> None:
@@ -581,8 +631,9 @@ async def push_to_peers(events: list[dict]) -> None:
     """Fast-path: manda eventos recém-criados localmente pros peers conhecidos."""
     if not events:
         return
+    me = _own_address()
     for peer in (await known_peers())[:12]:
-        await _post_json(f"{peer}/api/replica/push", {"events": events}, timeout=5.0)
+        await _post_json(f"{peer}/api/replica/push", {"events": events, "self": me}, timeout=5.0)
 
 
 async def recent_local_events(limit: int = 50) -> list[dict]:
