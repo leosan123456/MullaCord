@@ -24,26 +24,34 @@ if ((Test-Path $pfxPath) -and -not ($args -contains "-force")) {
 
 New-Item -ItemType Directory -Force -Path $buildDir | Out-Null
 
-$pass = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 28 | ForEach-Object { [char]$_ })
-Set-Content -Path $passPath -Value $pass -NoNewline -Encoding ascii
-$securePass = ConvertTo-SecureString -String $pass -Force -AsPlainText
+# Gerar o cert nao pode derrubar o build: se falhar (runner sem PKI, permissao,
+# etc.), o scripts/sign.js apenas pula a assinatura e o instalador sai sem assinar.
+try {
+  $pass = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 28 | ForEach-Object { [char]$_ })
+  Set-Content -Path $passPath -Value $pass -NoNewline -Encoding ascii
+  $securePass = ConvertTo-SecureString -String $pass -Force -AsPlainText
 
-$cert = New-SelfSignedCertificate `
-  -Type CodeSigningCert `
-  -Subject "CN=Mulla Cord, O=Mulla Cord, C=BR" `
-  -FriendlyName "Mulla Cord Code Signing" `
-  -KeyAlgorithm RSA -KeyLength 3072 `
-  -HashAlgorithm SHA256 `
-  -KeyUsage DigitalSignature `
-  -KeyExportPolicy Exportable `
-  -NotAfter (Get-Date).AddYears(5) `
-  -CertStoreLocation "Cert:\CurrentUser\My"
+  $cert = New-SelfSignedCertificate `
+    -Type CodeSigningCert `
+    -Subject "CN=Mulla Cord, O=Mulla Cord, C=BR" `
+    -FriendlyName "Mulla Cord Code Signing" `
+    -KeyAlgorithm RSA -KeyLength 3072 `
+    -HashAlgorithm SHA256 `
+    -KeyUsage DigitalSignature `
+    -KeyExportPolicy Exportable `
+    -NotAfter (Get-Date).AddYears(5) `
+    -CertStoreLocation "Cert:\CurrentUser\My"
 
-Export-PfxCertificate -Cert $cert -FilePath $pfxPath -Password $securePass | Out-Null
-Export-Certificate -Cert $cert -FilePath $cerPath -Type CERT | Out-Null
-Remove-Item -Path ("Cert:\CurrentUser\My\" + $cert.Thumbprint) -Force
+  Export-PfxCertificate -Cert $cert -FilePath $pfxPath -Password $securePass | Out-Null
+  Export-Certificate -Cert $cert -FilePath $cerPath -Type CERT | Out-Null
+  Remove-Item -Path ("Cert:\CurrentUser\My\" + $cert.Thumbprint) -Force
 
-Write-Host "Certificado gerado:"
-Write-Host ("  " + $pfxPath)
-Write-Host ("  " + $cerPath + "  (publico)")
-Write-Host ("  thumbprint " + $cert.Thumbprint)
+  Write-Host "Certificado gerado:"
+  Write-Host ("  " + $pfxPath)
+  Write-Host ("  " + $cerPath + "  (publico)")
+  Write-Host ("  thumbprint " + $cert.Thumbprint)
+} catch {
+  Write-Warning "make-cert falhou ($($_.Exception.Message)) - seguindo sem assinar."
+  Remove-Item -Path $passPath -ErrorAction SilentlyContinue
+  exit 0
+}

@@ -54,21 +54,18 @@ jobs:
         working-directory: desktop
         run: npm ci
 
-      # Certificado de assinatura do Windows: usa os secrets se existirem
-      # (cert estável do projeto), senão gera um self-signed efêmero.
-      - name: Certificado Windows
-        if: runner.os == 'Windows'
+      # Cert de assinatura do Windows: se os secrets existirem, grava o .pfx
+      # antes do build (o make-cert.ps1 detecta e nao regenera). Sem secret, o
+      # proprio `npm run dist` gera um cert efemero — e se ate isso falhar no
+      # runner, o build segue sem assinar (make-cert.ps1 sai 0, sign.js pula).
+      - name: Cert do Windows (secrets, opcional)
+        if: runner.os == 'Windows' && env.WIN_CSC_PFX_B64 != ''
         working-directory: desktop
         shell: pwsh
         run: |
-          if ($env:WIN_CSC_PFX_B64) {
-            [IO.File]::WriteAllBytes("build/MullaCord-CodeSign.pfx", [Convert]::FromBase64String($env:WIN_CSC_PFX_B64))
-            Set-Content build/.cert-pass $env:WIN_CSC_PASSWORD -NoNewline -Encoding ascii
-            Write-Host "cert do projeto (secrets)"
-          } else {
-            npm run cert
-            Write-Host "::warning::sem secret WIN_CSC_PFX_B64 — assinado com cert efêmero; o .cer muda a cada build"
-          }
+          [IO.File]::WriteAllBytes("build/MullaCord-CodeSign.pfx", [Convert]::FromBase64String($env:WIN_CSC_PFX_B64))
+          Set-Content build/.cert-pass $env:WIN_CSC_PASSWORD -NoNewline -Encoding ascii
+          Write-Host "cert do projeto (secrets)"
         env:
           WIN_CSC_PFX_B64: ${{ secrets.WIN_CSC_PFX_B64 }}
           WIN_CSC_PASSWORD: ${{ secrets.WIN_CSC_PASSWORD }}
