@@ -1,6 +1,6 @@
 {
   "name": "mulacord-desktop",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "App desktop do Mulacord (Electron)",
   "main": "electron/main.js",
   "author": "Mulacord",
@@ -58,6 +58,10 @@
         "filter": [
           "**/*"
         ]
+      },
+      {
+        "from": "scripts/allow-firewall.ps1",
+        "to": "allow-firewall.ps1"
       }
     ],
     "protocols": [

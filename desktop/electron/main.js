@@ -276,6 +276,73 @@ let serverProc = null;
 let serverLog = [];
 let serverReady = false;
 const HOST_PORT = 8787;
+const DISCOVERY_PORT = 8788;
+
+// -------------------------------------------------- firewall (Windows)
+// O nó escuta em 0.0.0.0:8787. Se o Firewall bloquear a ENTRADA, os apps na
+// mesma rede se veem na descoberta (UDP) mas nao sincronizam (TCP) — cada um
+// fica numa replica isolada. Detectamos tentando alcancar a nós mesmos pelo IP
+// da LAN e, se falhar, o renderer oferece rodar o allow-firewall.ps1 (com UAC).
+let firewallState = { checked: false, blocked: false, lanIp: null };
+
+function firewallScriptPath() {
+  return app.isPackaged
+    ? path.join(process.resourcesPath, "allow-firewall.ps1")
+    : path.join(__dirname, "..", "scripts", "allow-firewall.ps1");
+}
+
+function httpOk(url, timeoutMs = 2500) {
+  return new Promise((resolve) => {
+    const req = http.get(url, { timeout: timeoutMs }, (res) => {
+      res.resume();
+      resolve(res.statusCode === 200);
+    });
+    req.on("error", () => resolve(false));
+    req.on("timeout", () => { req.destroy(); resolve(false); });
+  });
+}
+
+// Alcança o nó local pelo IP da LAN? (loopback sempre funciona; a LAN só se o
+// Firewall deixar a entrada passar.)
+async function checkInboundReachable() {
+  if (process.platform !== "win32") { firewallState = { checked: true, blocked: false, lanIp: null }; return firewallState; }
+  const lan = lanAddresses()[0];
+  if (!lan) { firewallState = { checked: true, blocked: false, lanIp: null }; return firewallState; }
+  if (!(await httpOk(`http://127.0.0.1:${HOST_PORT}/api/info`))) {
+    // o próprio nó ainda não respondeu — não dá pra concluir nada
+    return firewallState;
+  }
+  const viaLan = await httpOk(`http://${lan.address}:${HOST_PORT}/api/info`);
+  firewallState = { checked: true, blocked: !viaLan, lanIp: lan.address };
+  mainWindow?.webContents.send("firewall-state", firewallState);
+  return firewallState;
+}
+
+function allowFirewall() {
+  return new Promise((resolve) => {
+    if (process.platform !== "win32") return resolve({ ok: false, reason: "só no Windows" });
+    const script = firewallScriptPath();
+    if (!fs.existsSync(script)) return resolve({ ok: false, reason: "script não encontrado" });
+    const exes = [process.execPath];
+    try {
+      const sc = serverCommand().cmd;
+      if (typeof sc === "string" && sc.toLowerCase().endsWith(".exe")) exes.push(sc);
+    } catch {}
+    const ps = spawn("powershell.exe", [
+      "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script, "-Exe", exes.join(","),
+    ], { windowsHide: true });
+    let out = "";
+    ps.stdout.on("data", (d) => (out += d));
+    ps.stderr.on("data", (d) => (out += d));
+    ps.on("error", (e) => resolve({ ok: false, reason: e.message }));
+    ps.on("exit", async (code) => {
+      // re-testa depois de aplicar
+      await new Promise((r) => setTimeout(r, 1200));
+      const st = await checkInboundReachable();
+      resolve({ ok: code === 0 && !st.blocked, code, log: out.trim(), state: st });
+    });
+  });
+}
 
 function serverCommand() {
   if (app.isPackaged) {
@@ -329,7 +396,11 @@ function startHost(opts = {}) {
     const line = buf.toString();
     serverLog.push(line);
     if (serverLog.length > 400) serverLog.shift();
-    if (/Uvicorn running|Application startup complete/.test(line)) serverReady = true;
+    if (/Uvicorn running|Application startup complete/.test(line) && !serverReady) {
+      serverReady = true;
+      // deu ~2s pro socket assentar e checa se a LAN alcança a gente
+      setTimeout(() => { checkInboundReachable().catch(() => {}); }, 2000);
+    }
     mainWindow?.webContents.send("host-log", line);
   };
   serverProc.stdout.on("data", onData);
@@ -459,6 +530,8 @@ function createWindow() {
   // descoberta / rede
   ipcMain.handle("net:discover", (_e, port) => discoverLan(port || 8788));
   ipcMain.handle("net:lan", () => lanAddresses());
+  ipcMain.handle("net:firewall-state", () => checkInboundReachable());
+  ipcMain.handle("net:firewall-allow", () => allowFirewall());
 
   // detecção de jogos
   games.start((activity) => win.webContents.send("game-activity", activity));

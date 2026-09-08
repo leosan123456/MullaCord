@@ -16,6 +16,9 @@ contextBridge.exposeInMainWorld("mula", {
   net: {
     discover: (port) => ipcRenderer.invoke("net:discover", port),
     lan: () => ipcRenderer.invoke("net:lan"),
+    firewallState: () => ipcRenderer.invoke("net:firewall-state"),
+    firewallAllow: () => ipcRenderer.invoke("net:firewall-allow"),
+    onFirewallState: (cb) => ipcRenderer.on("firewall-state", (_e, s) => cb(s)),
   },
 
   host: {
