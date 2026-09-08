@@ -76,10 +76,19 @@ let authMode = "login";
 let community = null;       // { id, name, secret, priority, publicHost }
 let activeNode = null;      // { url, info, source } — o coordenador eleito
 
+let _lanRescan = null;
 function showAuthStep(step) {
   $("auth-welcome").hidden = step !== "welcome";
   $("auth-creds").hidden = step !== "creds";
   ["auth-error", "auth-error2"].forEach((id) => { const n = $(id); if (n) n.textContent = ""; });
+  clearInterval(_lanRescan);
+  if (step === "welcome") {
+    // varre a rede agora e vai atualizando — comunidade nova aparece sozinha
+    scanLanForCommunities();
+    _lanRescan = setInterval(scanLanForCommunities, 4000);
+  } else if (step === "creds") {
+    _lanRescan = setInterval(refreshCredsLanSwitch, 5000);
+  }
 }
 
 // espera o próprio nó local ficar pronto (ele sobe sozinho no launch)
@@ -116,6 +125,41 @@ async function resolveAndShowCreds({ bootstrap = [], preferRemote = false } = {}
   showAuthStep("creds");
   setAuthMode(firstAccount ? "register" : "login");
   setTimeout(() => $(firstAccount ? "reg-username" : "login-id")?.focus(), 50);
+  refreshCredsLanSwitch();
+}
+
+// Na tela de credenciais: se apareceu OUTRA comunidade na rede, oferece trocar.
+async function refreshCredsLanSwitch() {
+  const box = $("creds-lan-switch");
+  if (!box || !window.mula?.net?.discover) return;
+  let beacons = [];
+  try { beacons = (await window.mula.net.discover()) || []; } catch {}
+  const others = new Map();
+  for (const b of beacons) {
+    if (!b.community_id || b.community_id === community?.id) continue;
+    const cur = others.get(b.community_id) || {
+      id: b.community_id, name: b.community_name || b.name || "Comunidade",
+      members: b.members || 0, addrs: [],
+    };
+    cur.addrs.push(`${b.address}:${b.http_port || 8787}`);
+    cur.members = Math.max(cur.members, b.members || 0);
+    others.set(b.community_id, cur);
+  }
+  box.replaceChildren();
+  box.hidden = others.size === 0;
+  for (const c of others.values()) {
+    const row = el("button", "lan-switch-row");
+    row.append(
+      el("span", "lsr-badge", (c.name || "?").slice(0, 2).toUpperCase()),
+      el("span", "lsr-text", `Entrar em “${c.name}” · ${c.members} ${c.members === 1 ? "pessoa" : "pessoas"} nesta rede`),
+    );
+    row.addEventListener("click", async () => {
+      row.disabled = true;
+      try { await joinCommunity({ id: c.id, name: c.name, secret: "", addrs: c.addrs }); }
+      catch (e) { $("auth-error2").textContent = e.message || "Não deu pra entrar."; row.disabled = false; }
+    });
+    box.append(row);
+  }
 }
 
 function setAuthMode(mode) {
@@ -362,12 +406,75 @@ async function boot(url, token) {
 
   // entrou por um peer? migra pro nó local assim que ele terminar de sincronizar
   if (!url.includes("127.0.0.1")) migrateToLocalWhenReady(token);
+
+  checkFirewallBanner();
+  startSyncHint();
+}
+
+// -------- Firewall: o nó não é alcançável na LAN? --------
+function wireFirewallBanner() {
+  const b = $("net-banner");
+  if (!b || b._wired) return;
+  b._wired = true;
+  $("net-banner-dismiss")?.addEventListener("click", () => { b.hidden = true; });
+  $("net-banner-fix")?.addEventListener("click", async () => {
+    const btn = $("net-banner-fix");
+    btn.disabled = true; btn.textContent = "Aguardando o Windows…";
+    try {
+      const r = await window.mula.net.firewallAllow();
+      if (r?.ok) { b.hidden = true; toast("Firewall liberado — reabra o app nos outros PCs", "success"); }
+      else { btn.disabled = false; btn.textContent = "Tentar de novo"; toast(r?.reason || "Não consegui liberar (você precisa aceitar o aviso do Windows).", "error"); }
+    } catch (e) { btn.disabled = false; btn.textContent = "Tentar de novo"; toast(e.message, "error"); }
+  });
+}
+
+async function checkFirewallBanner() {
+  wireFirewallBanner();
+  if (!window.mula?.net?.firewallState) return;
+  window.mula.net.onFirewallState?.((s) => applyFirewallState(s));
+  try { applyFirewallState(await window.mula.net.firewallState()); } catch {}
+}
+
+function applyFirewallState(s) {
+  const b = $("net-banner");
+  if (!b || !s?.checked) return;
+  b.hidden = !s.blocked;
+  hydrateIcons(b);
+}
+
+// -------- dica de sincronização ("sincronizando… 2/5 pessoas") --------
+let _syncTimer = null;
+function startSyncHint() {
+  clearInterval(_syncTimer);
+  _syncTimer = setInterval(updateSyncHint, 4000);
+  updateSyncHint();
+}
+
+async function updateSyncHint() {
+  const el0 = $("sync-hint");
+  if (!el0 || $("app").hidden) return;
+  try {
+    // quantos o nó ativo conhece vs. o máximo visto entre os nós da comunidade
+    const mine = (await state.api.info()).members || 0;
+    let peak = mine;
+    const lan = (await window.mula?.net?.discover?.()) || [];
+    for (const bcn of lan) {
+      if (bcn.community_id === state.community?.id) peak = Math.max(peak, bcn.members || 0);
+    }
+    if (peak > mine) {
+      el0.hidden = false;
+      el0.textContent = `sincronizando pessoas… ${mine}/${peak}`;
+    } else {
+      el0.hidden = true;
+    }
+  } catch { el0.hidden = true; }
 }
 
 async function migrateToLocalWhenReady(token) {
   const local = SELF_URL;
+  const remoteUrl = state.serverUrl;
   toast("Sincronizando esta comunidade no seu PC…", "info");
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 60; i++) {
     await new Promise((r) => setTimeout(r, 3000));
     if (state.serverUrl === local) return;
     try {
@@ -375,6 +482,12 @@ async function migrateToLocalWhenReady(token) {
       if (info.community_id !== community?.id) continue;
       const me = await new Api(local, token).me();   // nó local já conhece minha conta?
       if (!me?.id) continue;
+      // ...e já puxou (quase) todo mundo? senão o usuário migra pra um nó que
+      // ainda "não acha ninguém". Tolera 1 de diferença (corrida com cadastros).
+      let remoteMembers = 0;
+      try { remoteMembers = (await new Api(remoteUrl).info()).members || 0; } catch {}
+      if ((info.members || 0) + 1 < remoteMembers) continue;
+
       state.serverUrl = local;
       state.api = new Api(local, token);
       saveSession(community.id, { token, url: local });
@@ -382,6 +495,7 @@ async function migrateToLocalWhenReady(token) {
       state.gw = new Gateway(local, token);
       wireGateway(state.gw);
       state.gw.connect();
+      window.dispatchEvent(new CustomEvent("mula:refresh"));
       toast("Pronto — tudo sincronizado neste PC", "success");
       return;
     } catch { /* ainda não */ }
@@ -763,7 +877,11 @@ async function runPeopleSearch(q) {
   box.replaceChildren();
   box.hidden = false;
   if (!list.length) {
-    box.append(el("div", "people-empty", q ? "Ninguém encontrado" : "Você é a única conta aqui ainda"));
+    const syncing = !$("sync-hint")?.hidden;
+    box.append(el("div", "people-empty",
+      syncing ? "Ainda sincronizando as contas desta comunidade — aguarde alguns segundos."
+      : q ? "Ninguém encontrado"
+      : "Você é a única conta aqui ainda. Quem entrar na mesma comunidade aparece aqui."));
     return;
   }
   for (const u of list) {

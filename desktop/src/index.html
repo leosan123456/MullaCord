@@ -54,6 +54,14 @@
       </div>
     </header>
 
+    <!-- Firewall bloqueando o nó na LAN -->
+    <div id="net-banner" class="net-banner" hidden>
+      <span class="ico-slot" data-icon="shield" data-icon-size="16"></span>
+      <span class="nb-text">O Windows está bloqueando o Mulla Cord na rede local — seus amigos podem não conseguir sincronizar.</span>
+      <button id="net-banner-fix" class="primary">Liberar no Firewall</button>
+      <button id="net-banner-dismiss" class="icon-btn" title="Depois" data-icon="x" data-icon-size="14"></button>
+    </div>
+
     <!-- Login -->
     <div id="auth" class="auth">
       <div class="auth-card">
@@ -98,12 +106,15 @@
 
         <!-- Credenciais -->
         <div id="auth-creds" hidden>
-          <button id="auth-back" class="linkish" hidden>← trocar de comunidade</button>
+          <button id="auth-back" class="linkish">← trocar de comunidade</button>
           <div class="server-badge">
             <span data-icon="users" data-icon-size="15"></span>
             <span id="creds-server-name">comunidade</span>
           </div>
           <p id="creds-node" class="field-hint" hidden></p>
+
+          <!-- outra comunidade apareceu na rede enquanto você está aqui -->
+          <div id="creds-lan-switch" class="lan-switch" hidden></div>
 
           <p id="creds-welcome" class="welcome-note" hidden>Seja o primeiro a criar uma conta nesta comunidade.</p>
 
@@ -169,6 +180,7 @@
           </div>
           <div id="people-results" class="people-results" hidden></div>
           <ul id="friend-list" class="list"></ul>
+          <div id="sync-hint" class="sync-hint" hidden></div>
           <div id="side-status"></div>
         </div>
 

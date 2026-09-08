@@ -102,15 +102,19 @@ export async function resolveActive(community, { bootstrap = [], preferRemote = 
   const self = alive.find((n) => n.source === "self");
   const selfOk = self && (!community || self.info.community_id === community.id);
 
-  if (preferRemote && remotes.length) {
-    remotes.sort(_elect);
-    return remotes[0];
-  }
+  remotes.sort(_elect);
+  const bestRemote = remotes[0];
+  const memb = (n) => (n && n.info && Number(n.info.members)) || 0;
+
+  if (preferRemote && bestRemote) return bestRemote;
+
+  // O padrão é o nó local (leitura instantânea + realtime pela porta local).
+  // MAS se um peer alcançável tem mais gente que o local, o local ainda está
+  // sincronizando — usa o peer até ele emparelhar, senão o usuário "não acha
+  // ninguém". migrateToLocalWhenReady() troca de volta quando o local iguala.
+  if (selfOk && bestRemote && memb(bestRemote) > memb(self)) return bestRemote;
   if (selfOk) return self;
-  if (remotes.length) {
-    remotes.sort(_elect);
-    return remotes[0];
-  }
+  if (bestRemote) return bestRemote;
   return self || { url: SELF_URL, info: null, source: "self" };
 }
 

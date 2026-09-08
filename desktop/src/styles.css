@@ -430,6 +430,46 @@ button.full { width: 100%; margin-top: 8px; }
 .server-card .sc-forget { flex: none; }
 .server-card .sc-badge.saved { background: var(--green); color: #fff; }
 
+/* trocar de comunidade na tela de credenciais */
+.lan-switch { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; }
+.lan-switch-row {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  padding: 9px 11px; border-radius: 11px; cursor: pointer;
+  background: var(--accent-soft); border: 1px solid transparent;
+  transition: border-color 130ms;
+}
+.lan-switch-row:hover { border-color: var(--accent); filter: none; }
+.lan-switch-row .lsr-badge {
+  width: 28px; height: 28px; border-radius: 8px; flex: none;
+  background: var(--accent); color: #09090B;
+  display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px;
+}
+.lan-switch-row .lsr-text { font-size: 12.5px; color: var(--text); line-height: 1.3; }
+
+/* banner de firewall bloqueando o nó */
+.net-banner {
+  display: flex; align-items: center; gap: 12px;
+  padding: 9px 14px; font-size: 13px;
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-content));
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+.net-banner .nb-text { flex: 1; min-width: 0; }
+.net-banner .ico-slot { flex: none; color: var(--accent); display: flex; }
+.net-banner .primary { flex: none; padding: 6px 12px; font-size: 12.5px; }
+
+/* dica de sincronização na barra lateral */
+.sync-hint {
+  font-size: 11px; color: var(--accent);
+  padding: 5px 10px; margin: 2px 8px 0;
+  font-variant-numeric: tabular-nums;
+  display: flex; align-items: center; gap: 6px;
+}
+.sync-hint::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); animation: pulse 1s ease infinite;
+}
+
 .server-group { margin-bottom: 12px; }
 .server-group-head {
   display: flex; align-items: center; justify-content: space-between;
