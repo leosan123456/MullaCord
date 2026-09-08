@@ -3,4 +3,6 @@
 *.png binary
 *.ico binary
 *.exe binary
-releases/*.exe filter=lfs diff=lfs merge=lfs -text
+*.bmp binary
+*.cer binary
+# Binários de release não moram mais no repo — vão pras GitHub Releases (CI).

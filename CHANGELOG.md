@@ -29,6 +29,15 @@ Instalador compacto + macOS + build no CI.
 - `afterPack.js` agora e cross-platform (poda locales + Fuses no binario certo por
   plataforma; assina o servidor embutido so no Windows).
 
+### Distribuicao
+- Os instaladores **saem da pasta `releases/`** do repo (eram ~90 MB via Git LFS,
+  so engordavam o clone) e passam a ser publicados nas **GitHub Releases** pelo CI.
+- Nomes de artefato **sem versao** (`MullaCord-Web-Setup.exe`, `MullaCord-portable.exe`,
+  `MullaCord-<arch>.dmg`, `MullaCord-PublicCert.cer`) — assim
+  `github.com/.../releases/latest/download/<arquivo>` e sempre a ultima versao.
+- `site/index.html` usa esses links diretos e detecta o SO do visitante no botao
+  do topo. `releases/README.md` explica onde os arquivos foram parar.
+
 ### Correcao
 - Documentado o *"This app can't run on your PC"* quando o `.exe` esta numa pasta
   do OneDrive (vira placeholder; o Windows nao executa placeholder) — mover pra

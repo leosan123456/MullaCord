@@ -88,7 +88,7 @@
       "signAndEditExecutable": false
     },
     "portable": {
-      "artifactName": "MullaCord-portable-${version}.exe",
+      "artifactName": "MullaCord-portable.exe",
       "unpackDirName": "MullaCord",
       "requestExecutionLevel": "user"
     },
@@ -111,7 +111,7 @@
       "include": "build/installer.nsh"
     },
     "nsisWeb": {
-      "artifactName": "MullaCord-Web-Setup-${version}.exe"
+      "artifactName": "MullaCord-Web-Setup.exe"
     },
     "mac": {
       "target": [
@@ -144,7 +144,7 @@
       }
     },
     "dmg": {
-      "artifactName": "MullaCord-${version}-${arch}.dmg",
+      "artifactName": "MullaCord-${arch}.dmg",
       "title": "Mulla Cord ${version}"
     },
     "linux": {

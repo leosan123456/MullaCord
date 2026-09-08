@@ -1,8 +1,12 @@
 # site/ — página de download do Mulla Cord
 
 Página estática (um arquivo, `index.html`, com a fonte Satoshi embutida) para as
-pessoas baixarem o app. Os botões apontam para os `.exe` em
-[`../releases/`](../releases/) via URL absoluta do GitHub.
+pessoas baixarem o app. Os botões usam **links diretos e sem versão** para a
+última Release do GitHub:
+`https://github.com/leosan123456/MullaCord/releases/latest/download/<arquivo>`
+(`MullaCord-Web-Setup.exe`, `MullaCord-portable.exe`, `MullaCord-arm64.dmg`,
+`MullaCord-x64.dmg`, `MullaCord-PublicCert.cer`). Um `<script>` no fim do
+`index.html` troca o botão do topo pelo instalador do SO do visitante.
 
 ## Ver localmente
 
@@ -18,6 +22,5 @@ Abra `site/index.html` no navegador — não precisa de servidor.
 
 ## Ao lançar uma nova versão
 
-Troque o número em três lugares do `index.html`: os dois links de download
-(`MullaCord-Setup-<versão>.exe` e `MullaCord-portable-<versão>.exe`), a linha
-`v1.3.0` do hero e do rodapé, e os nomes de arquivo nos cartões.
+Nada a fazer aqui — os links são sem versão e apontam sempre pra
+`releases/latest`. É só o CI publicar a Release nova (push de tag `v*`).
