@@ -86,16 +86,27 @@ jobs:
           # ad-hoc no macOS ate haver Developer ID
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
 
+      # Só os artefatos finais — nada de dist-installer/win-unpacked/,
+      # dist-installer/mac*/ (o app cru, elevate.exe, base_library.zip, etc.).
+      - name: Coleta os instaladores
+        shell: bash
+        run: |
+          mkdir -p out
+          cp desktop/dist-installer/*.exe                 out/ 2>/dev/null || true
+          cp desktop/dist-installer/*.dmg                 out/ 2>/dev/null || true
+          cp desktop/dist-installer/*.zip                 out/ 2>/dev/null || true
+          cp desktop/dist-installer/*.yml                 out/ 2>/dev/null || true
+          cp desktop/dist-installer/nsis-web/*.exe        out/ 2>/dev/null || true
+          cp desktop/dist-installer/nsis-web/*.7z         out/ 2>/dev/null || true
+          cp desktop/dist-installer/nsis-web/*.yml        out/ 2>/dev/null || true
+          cp desktop/build/MullaCord-PublicCert.cer       out/ 2>/dev/null || true
+          rm -f out/__uninstaller*.exe
+          ls -la out/
+
       - uses: actions/upload-artifact@v4
         with:
           name: installers-${{ runner.os }}
-          path: |
-            desktop/dist-installer/**/*.exe
-            desktop/dist-installer/**/*.7z
-            desktop/dist-installer/**/*.dmg
-            desktop/dist-installer/**/*.zip
-            desktop/dist-installer/**/latest*.yml
-            desktop/build/MullaCord-PublicCert.cer
+          path: out/**
           if-no-files-found: warn
 
   release:
@@ -121,19 +132,42 @@ jobs:
         with:
           path: artifacts
 
-      - name: Lista o que baixou
-        run: find artifacts -type f | sort
+      - name: Junta e lista os artefatos
+        shell: bash
+        run: |
+          mkdir -p release
+          find artifacts -type f -exec cp -f {} release/ \;
+          ls -la release/
+
+      # A release pode ja existir (re-run) com assets antigos/errados — zera antes.
+      - name: Limpa assets antigos da Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v${{ steps.ver.outputs.version }}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release view "$tag" --json assets -q '.assets[].name' | while read -r a; do
+              [ -n "$a" ] && gh release delete-asset "$tag" "$a" -y || true
+            done
+          fi
 
       - name: Publica a Release v${{ steps.ver.outputs.version }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.ver.outputs.version }}
           name: v${{ steps.ver.outputs.version }}
+          make_latest: true
           fail_on_unmatched_files: false
-          files: |
-            artifacts/**/*.exe
-            artifacts/**/*.7z
-            artifacts/**/*.dmg
-            artifacts/**/*.zip
-            artifacts/**/latest*.yml
-            artifacts/**/MullaCord-PublicCert.cer
+          body: |
+            Instaladores do Mulla Cord ${{ steps.ver.outputs.version }}.
+
+            | Arquivo | Para quê |
+            |---|---|
+            | **MullaCord-Web-Setup.exe** (~1 MB) | Windows 10/11 — instalador; baixa o app durante a instalação |
+            | **MullaCord-portable.exe** | Windows — portátil, offline, sem instalar |
+            | **MullaCord-arm64.dmg** / **MullaCord-x64.dmg** | macOS 11+ (Apple Silicon / Intel) |
+            | MullaCord-PublicCert.cer | Certificado público (importe nas Autoridades Raiz p/ sumir com o aviso do SmartScreen) |
+
+            SmartScreen (Windows) e Gatekeeper (macOS) ainda avisam — o app não tem
+            assinatura paga. Veja `docs/INSTALL.md`.
+          files: release/*
