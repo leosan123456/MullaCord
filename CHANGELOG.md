@@ -1,5 +1,39 @@
 # Changelog
 
+## 1.5.0
+
+Instalador compacto + macOS + build no CI.
+
+### Instalador (Windows)
+- **Instalador-web**: o usuario baixa um stub de **~1 MB** (era ~92 MB); o app
+  (~85 MB) vem durante a instalacao, da Release do GitHub. Mesma cara da marca,
+  mesma instalacao sem admin em `%LOCALAPPDATA%`. Alvo `nsis` → `nsis-web`.
+- **Portatil** continua offline, agora **~78 MB** (era ~92): `compression: maximum`,
+  locales do Chromium podados (so `en-US` + `pt-BR`), servidor Python mais enxuto
+  (sem watchfiles / PyYAML / tzdata), renderer ofuscado.
+- Requisitos claros: **Windows 10 (1809+) e 11**, 64-bit.
+
+### macOS
+- Alvos `dmg` + `zip` para **arm64 (Apple Silicon)** e **x64 (Intel)**, macOS 11+.
+- Hardened runtime + entitlements (`build/entitlements.mac.plist`): JIT, microfone,
+  camera, rede. Usage strings de mic/camera no Info.plist.
+- Assinatura **ad-hoc** por enquanto (sem Apple Developer ID) — Gatekeeper pede
+  "botao direito → Abrir" na 1a vez. Passo a passo em `docs/INSTALL.md`.
+- `npm run dist:mac`.
+
+### Build no CI
+- `.github/workflows/build.yml`: um push de tag `v*` builda Windows (`windows-latest`)
+  e macOS (`macos-14`) e anexa **todos** os artefatos a Release da tag — de onde o
+  instalador-web puxa o pacote. Cert de assinatura do Windows via secrets
+  (`WIN_CSC_PFX_B64` / `WIN_CSC_PASSWORD`) ou efemero.
+- `afterPack.js` agora e cross-platform (poda locales + Fuses no binario certo por
+  plataforma; assina o servidor embutido so no Windows).
+
+### Correcao
+- Documentado o *"This app can't run on your PC"* quando o `.exe` esta numa pasta
+  do OneDrive (vira placeholder; o Windows nao executa placeholder) — mover pra
+  fora resolve.
+
 ## 1.4.0
 
 Instalador com a cara da marca + blindagem do pacote.

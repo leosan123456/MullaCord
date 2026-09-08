@@ -17,26 +17,33 @@ histórico se cura sozinho.
 
 | | |
 |---|---|
-| Sistema | Windows 10/11 (64-bit) |
+| Windows | 10 (versão 1809, de out/2018, ou mais nova) e 11 — 64-bit |
+| macOS | 11 Big Sur ou mais novo — Apple Silicon ou Intel |
 | Disco | ~300 MB |
 | Para conversar na LAN | só o app |
 | Para amigos de outra rede | UPnP no roteador **ou** redirecionar a porta 8787 |
 
-Baixe da pasta [`releases/`](../releases/) do repositório:
+Baixe da página de **[Releases](https://github.com/leosan123456/MullaCord/releases)** do projeto:
 
 | Opção | Arquivo | Como usar |
 |---|---|---|
-| **Instalar** | `MullaCord-Setup-1.4.0.exe` | Assistente com a cara da marca (licença → pasta → progresso). Instala em `%LOCALAPPDATA%` **sem pedir admin** e cria os atalhos **Mulla Cord**. |
-| **Portátil** | `MullaCord-portable-1.4.0.exe` | Dois cliques e o app abre. Nada é instalado; pode deixar num pen drive. |
+| **Instalar (Windows)** | `MullaCord-Web-Setup-<versão>.exe` (~1 MB) | Assistente com a cara da marca. Baixa o app (~85 MB) durante a instalação — **precisa de internet nesse momento**. Instala em `%LOCALAPPDATA%` **sem pedir admin** e cria os atalhos **Mulla Cord**. |
+| **Portátil (Windows)** | `MullaCord-portable-<versão>.exe` (~78 MB) | Dois cliques e o app abre. Nada é instalado, funciona **offline**; pode deixar num pen drive. |
+| **macOS** | `MullaCord-<versão>-<arch>.dmg` | Abra o `.dmg` e arraste **Mulla Cord** para *Aplicativos*. `arm64` = Apple Silicon (M1+), `x64` = Intel. |
 
-> **SmartScreen** ("aplicativo não reconhecido"): os `.exe` são assinados com um
-> certificado do próprio projeto (não é um certificado pago com reputação), então
-> o Windows ainda avisa. Clique em **Mais informações → Executar assim mesmo**.
+> **Windows — SmartScreen** ("aplicativo não reconhecido"): os `.exe` são assinados
+> com um certificado do próprio projeto (não é um certificado pago com reputação),
+> então o Windows ainda avisa. Clique em **Mais informações → Executar assim mesmo**.
 >
-> Quer sumir com o aviso? Importe **`releases/MullaCord-PublicCert.cer`** em
-> *Certificados → Autoridades de Certificação Raiz Confiáveis* (Win+R →
-> `certmgr.msc`). Aí a assinatura passa a ser reconhecida como **"Mulla Cord"** e
-> o Windows confia. A assinatura também garante que o `.exe` não foi adulterado.
+> Quer sumir com o aviso? Importe **`MullaCord-PublicCert.cer`** (na mesma Release)
+> em *Certificados → Autoridades de Certificação Raiz Confiáveis* (Win+R →
+> `certmgr.msc`). Aí a assinatura passa a ser reconhecida como **"Mulla Cord"** e o
+> Windows confia. A assinatura também garante que o `.exe` não foi adulterado.
+>
+> **macOS — Gatekeeper**: o app ainda não tem assinatura da Apple (conta paga), então
+> o macOS diz *"não foi possível verificar o desenvolvedor"*. Na 1ª vez: **clique com
+> o botão direito no app → Abrir → Abrir**. Ou pelo Terminal:
+> `xattr -dr com.apple.quarantine "/Applications/Mulla Cord.app"`.
 
 O app já traz o servidor embutido — não precisa instalar Python nem nada. Ao abrir,
 ele sobe um **nó** em segundo plano sozinho.
@@ -134,20 +141,28 @@ cd desktop
 npm install
 npm start
 
-# gerar o instalador
+# gerar o instalador (Windows)
 cd ..\server
 .\.venv\Scripts\python.exe -m pip install -r requirements-build.txt
 cd ..\desktop
 npm install        # inclui javascript-obfuscator e @electron/fuses
-npm run dist       # cert -> servidor -> ofusca + arte -> instalador assinado
-                   # -> desktop/dist-installer/MullaCord-{Setup,portable}-<versão>.exe
+npm run dist       # cert -> servidor -> ofusca + arte -> electron-builder
+                   # -> desktop/dist-installer/nsis-web/MullaCord-Web-Setup-<versão>.exe (stub ~1 MB)
+                   #    desktop/dist-installer/nsis-web/mulacord-desktop-<versão>-x64.nsis.7z (pacote)
+                   #    desktop/dist-installer/MullaCord-portable-<versão>.exe
 ```
+
+macOS: `npm run dist:mac` num Mac (o instalador-web e o `.dmg` de Mac saem do CI
+em `.github/workflows/build.yml` num push de tag `v*`).
 
 ## 8. Problemas comuns
 
 | Problema | Solução |
 |---|---|
-| Windows bloqueou o instalador | SmartScreen — **Mais informações → Executar assim mesmo**. Pra sumir de vez: importe `releases/MullaCord-PublicCert.cer` nas Autoridades de Certificação Raiz Confiáveis |
+| **"This app can't run on your PC"** ao abrir o instalador | O `.exe` está numa pasta sincronizada pelo **OneDrive** e virou um *placeholder* (o Windows não executa placeholder). Mova o `.exe` pra fora do OneDrive (ex.: `Downloads`, `C:\`) e rode de lá. |
+| Windows bloqueou o instalador | SmartScreen — **Mais informações → Executar assim mesmo**. Pra sumir de vez: importe `MullaCord-PublicCert.cer` (na Release) nas Autoridades de Certificação Raiz Confiáveis |
+| Instalador-web falhou ao baixar | Precisa de internet **durante** a instalação (ele puxa ~85 MB da Release do GitHub). Sem internet no PC de destino, use o **portátil**. |
+| macOS: "não é possível abrir — desenvolvedor não verificado" | Botão direito no app → **Abrir** → **Abrir**. Ou: `xattr -dr com.apple.quarantine "/Applications/Mulla Cord.app"` |
 | Não aparece nenhuma comunidade na rede | Mesma rede? Firewall liberado? Algum amigo com o app aberto? Peça um convite e cole |
 | Amigo de outra cidade não conecta | UPnP falhou → port forwarding da 8787 + endereço público no painel de Comunidade, ou VPN |
 | Sem áudio na chamada | Permissão de microfone no Windows; conferir dispositivo em Configurações de voz |

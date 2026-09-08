@@ -1,6 +1,6 @@
 {
   "name": "mulacord-desktop",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "App desktop do Mulacord (Electron)",
   "main": "electron/main.js",
   "author": "Mulacord",
@@ -14,6 +14,7 @@
     "icon": "node scripts/postbuild.js",
     "prep": "node scripts/obfuscate.js && node scripts/make-installer-art.js && node scripts/postbuild.js",
     "dist": "npm run cert && npm run build:server && npm run prep && electron-builder --win --publish never",
+    "dist:mac": "npm run build:server && npm run prep && electron-builder --mac --publish never",
     "dist:dir": "npm run build:server && npm run prep && electron-builder --win --dir"
   },
   "devDependencies": {
@@ -29,6 +30,16 @@
     "productName": "Mulla Cord",
     "executableName": "MullaCord",
     "copyright": "Copyright © 2026 Mulla Cord",
+    "compression": "maximum",
+    "electronLanguages": [
+      "en-US",
+      "pt-BR"
+    ],
+    "publish": {
+      "provider": "github",
+      "owner": "leosan123456",
+      "repo": "MullaCord"
+    },
     "directories": {
       "buildResources": "build",
       "output": "dist-installer"
@@ -60,7 +71,7 @@
     "win": {
       "target": [
         {
-          "target": "nsis",
+          "target": "nsis-web",
           "arch": [
             "x64"
           ]
@@ -97,13 +108,44 @@
       "uninstallerSidebar": "build/installerSidebar.bmp",
       "installerHeader": "build/installerHeader.bmp",
       "uninstallDisplayName": "Mulla Cord ${version}",
-      "include": "build/installer.nsh",
-      "artifactName": "MullaCord-Setup-${version}.exe"
+      "include": "build/installer.nsh"
+    },
+    "nsisWeb": {
+      "artifactName": "MullaCord-Web-Setup-${version}.exe"
     },
     "mac": {
-      "target": "dmg",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
       "icon": "build/icon.png",
-      "category": "public.app-category.social-networking"
+      "category": "public.app-category.social-networking",
+      "darkModeSupport": true,
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "O Mulla Cord usa o microfone nas chamadas de voz.",
+        "NSCameraUsageDescription": "O Mulla Cord usa a câmera quando você liga o vídeo na chamada.",
+        "LSMinimumSystemVersion": "11.0"
+      }
+    },
+    "dmg": {
+      "artifactName": "MullaCord-${version}-${arch}.dmg",
+      "title": "Mulla Cord ${version}"
     },
     "linux": {
       "target": [

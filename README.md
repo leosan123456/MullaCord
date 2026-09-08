@@ -42,21 +42,23 @@ nós se sincronizam entre si (estilo torrent) e o histórico se cura sozinho.
 > o *backfill* automático. Se algo ficar estranho, apague `server/data/mulacord.sqlite3*`
 > (ou `%APPDATA%/Mulla Cord/communities/<id>/`) e recomece.
 
-## Baixar (Windows 64-bit)
+## Baixar
 
-Prontos para usar, em [`releases/`](releases/) — nenhum Python/Node necessário
-(o servidor já vem embutido):
+Prontos para usar na página de **[Releases](https://github.com/leosan123456/MullaCord/releases)**
+— nenhum Python/Node necessário (o servidor já vem embutido):
 
 | Arquivo | O que faz |
 |---|---|
-| [`MullaCord-Setup-1.4.0.exe`](releases/MullaCord-Setup-1.4.0.exe) | **Instalador** — assistente com a cara da marca, instala sem admin e cria os atalhos "Mulla Cord" |
-| [`MullaCord-portable-1.4.0.exe`](releases/MullaCord-portable-1.4.0.exe) | **Portátil** — dois cliques e abre, sem instalar nada |
-| [`MullaCord-PublicCert.cer`](releases/MullaCord-PublicCert.cer) | Certificado público do projeto — importe nas *Autoridades Raiz Confiáveis* pra sumir com o aviso do SmartScreen |
+| `MullaCord-Web-Setup-<versão>.exe` (~1 MB) | **Windows — instalador web.** Baixa o app (~85 MB) durante a instalação (precisa de internet na hora), instala sem admin e cria os atalhos "Mulla Cord". Windows 10 (1809+) e 11, 64-bit. |
+| `MullaCord-portable-<versão>.exe` (~78 MB) | **Windows — portátil.** Dois cliques e abre, **offline**, sem instalar nada. |
+| `MullaCord-<versão>-<arch>.dmg` | **macOS 11+** — `arm64` (Apple Silicon) ou `x64` (Intel). Arraste pra *Aplicativos*. |
+| `MullaCord-PublicCert.cer` | Certificado público do projeto — importe nas *Autoridades Raiz Confiáveis* pra sumir com o aviso do SmartScreen |
 
 > Os `.exe` são assinados (Authenticode) com um certificado do projeto — publisher
 > "Mulla Cord", com timestamp, detecta adulteração. **Não** é um certificado pago
 > com reputação, então o SmartScreen ainda avisa: **Mais informações → Executar
-> assim mesmo**, ou importe o `.cer` acima. Detalhes em [docs/INSTALL.md](docs/INSTALL.md).
+> assim mesmo**, ou importe o `.cer`. No macOS o app ainda não tem assinatura da
+> Apple: **botão direito → Abrir** na 1ª vez. Detalhes em [docs/INSTALL.md](docs/INSTALL.md).
 
 Passo a passo para novos usuários: [docs/INSTALL.md](docs/INSTALL.md).
 
@@ -130,6 +132,12 @@ Depois disso o app entra direto (sessão salva por comunidade).
 
 ## Gerando o instalador
 
+**No CI (recomendado):** um push de tag `v*` dispara [`.github/workflows/build.yml`](.github/workflows/build.yml),
+que builda Windows (`windows-latest`) e macOS (`macos-14`) e anexa todos os
+artefatos à Release da tag. É de lá que o instalador-web baixa o pacote.
+
+**Local (só Windows, nesta máquina):**
+
 ```powershell
 cd server
 .\.venv\Scripts\python.exe -m pip install -r requirements-build.txt   # PyInstaller
@@ -142,22 +150,28 @@ npm run dist               # cert -> servidor (PyInstaller) -> ofusca + arte -> 
 `npm run dist` faz, em ordem: `npm run cert` (gera `build/MullaCord-CodeSign.pfx`
 uma vez), `build:server` (PyInstaller), `prep` (`obfuscate.js` gera `src.dist/`,
 `make-installer-art.js` gera os BMP, `postbuild.js` gera o `.ico`), e o
-electron-builder. O `afterPack` aplica os Electron Fuses e assina o servidor
-embutido; o `afterAllArtifactBuild` assina o instalador e o portátil.
+electron-builder. O `afterPack` poda os locales do Chromium, aplica os Electron
+Fuses e (no Windows) assina o servidor embutido; o `afterAllArtifactBuild` assina
+os `.exe` finais. `npm run dist:mac` faz o equivalente pro macOS (sem o passo do
+cert — a assinatura no Mac é ad-hoc até haver Apple Developer ID).
 
 Saída em `desktop/dist-installer/`:
 
-- `MullaCord-Setup-<versão>.exe` — instalador assistido com a marca
-- `MullaCord-portable-<versão>.exe` — portátil, sem instalação
+| Arquivo | O que é |
+|---|---|
+| `nsis-web/MullaCord-Web-Setup-<versão>.exe` | stub de ~1 MB — o que o usuário baixa |
+| `nsis-web/mulacord-desktop-<versão>-x64.nsis.7z` | pacote (~85 MB) que o stub baixa **da Release** |
+| `MullaCord-portable-<versão>.exe` | portátil offline (~78 MB) |
+| `MullaCord-<versão>-<arch>.dmg` / `.zip` | macOS (só no build do Mac) |
 
-Ambos incluem app + servidor e são assinados (Authenticode, self-signed +
-timestamp). Copie os dois `.exe` **e** `build/MullaCord-PublicCert.cer` para
-`releases/` (os `.exe` usam Git LFS).
+> O stub embute a URL `github.com/leosan123456/MullaCord/releases/download/v<versão>/…`
+> (campo `build.publish`). O `.nsis.7z` **precisa** estar na Release da tag `v<versão>`
+> — senão a instalação falha ao baixar. Por isso o CI é o caminho recomendado.
 
 **Fluxo de atualização** (sempre que fechar um conjunto de mudanças): bump da versão
 em `desktop/package.json` **e** `server/mulacord_server/__init__.py` → entrada no
-`CHANGELOG.md` → `npm run dist` → copiar `.exe` + `.cer` para `releases/` → commit
-+ `git tag -a vX.Y.Z` → `git push` main **e** a tag.
+`CHANGELOG.md` → commit → `git tag -a vX.Y.Z` → `git push` main **e** a tag → o CI
+builda e publica a Release.
 
 ## Documentação
 

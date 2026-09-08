@@ -326,17 +326,17 @@ section { padding-block: clamp(3rem, 8vw, 5.5rem); border-top: 1px solid var(--e
         um link, e a conversa é sua.
       </p>
       <div class="cta-row">
-        <a class="btn btn-primary" href="https://github.com/leosan123456/MullaCord/raw/main/releases/MullaCord-Setup-1.3.0.exe" data-signal-pulse>
+        <a class="btn btn-primary" href="https://github.com/leosan123456/MullaCord/releases/latest" data-signal-pulse>
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 19h16"/></svg>
-          Baixar para Windows
+          Baixar
         </a>
-        <a class="btn btn-ghost" href="#baixar">Versão portátil</a>
+        <a class="btn btn-ghost" href="#baixar">Windows · macOS</a>
       </div>
       <p class="hero-meta readout">
         <span class="dot" aria-hidden="true"></span>
-        <span>v1.3.0</span><span class="sep" aria-hidden="true">·</span>
-        <span>Windows 64&#8209;bit</span><span class="sep" aria-hidden="true">·</span>
-        <span>≈&nbsp;92&nbsp;MB</span><span class="sep" aria-hidden="true">·</span>
+        <span>Windows 10/11</span><span class="sep" aria-hidden="true">·</span>
+        <span>macOS 11+</span><span class="sep" aria-hidden="true">·</span>
+        <span>instalador ≈&nbsp;1&nbsp;MB</span><span class="sep" aria-hidden="true">·</span>
         <span>servidor embutido</span>
       </p>
     </div>
@@ -444,32 +444,44 @@ section { padding-block: clamp(3rem, 8vw, 5.5rem); border-top: 1px solid var(--e
     <canvas class="dl-signal" id="dlSignal" aria-hidden="true"></canvas>
     <div class="wrap">
       <div class="sec-head">
-        <p class="readout eyebrow">Baixar · Windows 64&#8209;bit</p>
-        <h2>Dois jeitos de começar.</h2>
-        <p class="narrow">Os dois já vêm com o app <em>e</em> o servidor embutidos. Nenhum
-          Python ou Node necessário.</p>
+        <p class="readout eyebrow">Baixar · Windows &amp; macOS</p>
+        <h2>Três jeitos de começar.</h2>
+        <p class="narrow">Todos já vêm com o app <em>e</em> o servidor embutidos. Nenhum
+          Python ou Node necessário. Pegue os arquivos na
+          <a href="https://github.com/leosan123456/MullaCord/releases/latest">página de Releases</a>.</p>
       </div>
 
       <div class="dl-grid">
         <article class="dl-card is-primary">
-          <p class="kind readout">Instalador · 1 clique</p>
-          <h3>MullaCord Setup</h3>
-          <p>Instala, cria os atalhos “Mulla Cord” na área de trabalho e no menu Iniciar, e abre o app. Recomendado.</p>
-          <p class="file">MullaCord-Setup-1.3.0.exe · ≈&nbsp;92&nbsp;MB</p>
-          <a class="btn btn-primary" href="https://github.com/leosan123456/MullaCord/raw/main/releases/MullaCord-Setup-1.3.0.exe" data-signal-pulse>
+          <p class="kind readout">Windows · instalador web</p>
+          <h3>MullaCord Web Setup</h3>
+          <p>Baixa só um stub de ≈1 MB; o app (≈85 MB) vem durante a instalação. Cria os atalhos “Mulla Cord” e abre. Windows 10 (1809+) e 11. Recomendado.</p>
+          <p class="file">MullaCord-Web-Setup · ≈&nbsp;1&nbsp;MB · precisa de internet no install</p>
+          <a class="btn btn-primary" href="https://github.com/leosan123456/MullaCord/releases/latest" data-signal-pulse>
             <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 19h16"/></svg>
-            Baixar instalador
+            Baixar para Windows
           </a>
         </article>
 
         <article class="dl-card">
-          <p class="kind readout">Portátil · sem instalar</p>
+          <p class="kind readout">Windows · portátil / offline</p>
           <h3>MullaCord Portable</h3>
-          <p>Dois cliques e abre. Não escreve nada no sistema — bom para levar no pen drive ou testar antes.</p>
-          <p class="file">MullaCord-portable-1.3.0.exe · ≈&nbsp;92&nbsp;MB</p>
-          <a class="btn btn-ghost" href="https://github.com/leosan123456/MullaCord/raw/main/releases/MullaCord-portable-1.3.0.exe" data-signal-pulse>
+          <p>Dois cliques e abre. Não escreve nada no sistema, funciona sem internet — bom para pen drive ou testar antes.</p>
+          <p class="file">MullaCord-portable · ≈&nbsp;78&nbsp;MB</p>
+          <a class="btn btn-ghost" href="https://github.com/leosan123456/MullaCord/releases/latest" data-signal-pulse>
             <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 19h16"/></svg>
             Baixar portátil
+          </a>
+        </article>
+
+        <article class="dl-card">
+          <p class="kind readout">macOS · Apple Silicon / Intel</p>
+          <h3>MullaCord.dmg</h3>
+          <p>Abra o <span translate="no">.dmg</span> e arraste <strong>Mulla Cord</strong> para Aplicativos. <span translate="no">arm64</span> para M1+, <span translate="no">x64</span> para Intel. macOS 11+.</p>
+          <p class="file">MullaCord-&lt;versão&gt;-&lt;arch&gt;.dmg</p>
+          <a class="btn btn-ghost" href="https://github.com/leosan123456/MullaCord/releases/latest" data-signal-pulse>
+            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 19h16"/></svg>
+            Baixar para macOS
           </a>
         </article>
       </div>
@@ -477,10 +489,11 @@ section { padding-block: clamp(3rem, 8vw, 5.5rem); border-top: 1px solid var(--e
       <div class="note">
         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
         <p>
-          O <span translate="no">SmartScreen</span> do Windows vai avisar que o app “não é
-          reconhecido” — os <span translate="no">.exe</span> não têm assinatura digital paga.
-          Clique em <strong>Mais informações → Executar assim mesmo</strong>. Passo a passo
-          completo no <a href="https://github.com/leosan123456/MullaCord/blob/main/docs/INSTALL.md">manual de instalação</a>.
+          No Windows o <span translate="no">SmartScreen</span> avisa que o app “não é
+          reconhecido”; no macOS o <span translate="no">Gatekeeper</span> pede
+          <strong>botão direito → Abrir</strong> na 1ª vez — nenhum dos dois tem assinatura
+          paga ainda. Passo a passo completo no
+          <a href="https://github.com/leosan123456/MullaCord/blob/main/docs/INSTALL.md">manual de instalação</a>.
         </p>
       </div>
     </div>
@@ -522,7 +535,7 @@ npm start</pre>
         <circle cx="13.7" cy="18" r="1.5" fill="#FACC15"/>
         <circle cx="18.3" cy="18" r="1.5" fill="#FACC15"/>
       </svg>
-      <span translate="no">Mulla&nbsp;Cord</span> · <span class="readout" style="letter-spacing:0.1em">v1.3.0</span>
+      <span translate="no">Mulla&nbsp;Cord</span> · <span class="readout" style="letter-spacing:0.1em">Windows &amp; macOS</span>
     </span>
     <span>
       <a href="https://github.com/leosan123456/MullaCord">Código no GitHub</a>

@@ -16,6 +16,15 @@ hiddenimports += [
     "websockets", "websockets.legacy", "aiosqlite", "jwt",
 ]
 
+# O servidor sobe sempre sem --reload e sem --log-config yaml, então watchfiles
+# (Rust ~0.6 MB) e PyYAML (~0.3 MB) são peso morto — uvicorn os importa de forma
+# opcional e tolera a ausência. tzdata idem (SQLite guarda tudo em UTC/epoch).
+_DEAD_WEIGHT = [
+    "tkinter", "matplotlib", "numpy", "PIL",
+    "watchfiles", "yaml", "_yaml", "tzdata",
+    "pytest", "_pytest", "IPython", "pydoc_data",
+]
+
 a = Analysis(
     ["run.py"],
     pathex=["."],
@@ -23,7 +32,7 @@ a = Analysis(
     datas=datas,
     hiddenimports=hiddenimports,
     hookspath=[],
-    excludes=["tkinter", "matplotlib", "numpy", "PIL"],
+    excludes=_DEAD_WEIGHT,
     noarchive=False,
 )
 pyz = PYZ(a.pure)
