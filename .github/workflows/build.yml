@@ -85,11 +85,11 @@ jobs:
         with:
           name: installers-${{ runner.os }}
           path: |
-            desktop/dist-installer/*.exe
-            desktop/dist-installer/*.7z
-            desktop/dist-installer/*.dmg
-            desktop/dist-installer/*.zip
-            desktop/dist-installer/latest*.yml
+            desktop/dist-installer/**/*.exe
+            desktop/dist-installer/**/*.7z
+            desktop/dist-installer/**/*.dmg
+            desktop/dist-installer/**/*.zip
+            desktop/dist-installer/**/latest*.yml
             desktop/build/MullaCord-PublicCert.cer
           if-no-files-found: warn
 
@@ -98,10 +98,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            desktop/dist-installer/*.exe
-            desktop/dist-installer/*.7z
-            desktop/dist-installer/*.dmg
-            desktop/dist-installer/*.zip
-            desktop/dist-installer/latest*.yml
+            desktop/dist-installer/**/*.exe
+            desktop/dist-installer/**/*.7z
+            desktop/dist-installer/**/*.dmg
+            desktop/dist-installer/**/*.zip
+            desktop/dist-installer/**/latest*.yml
             desktop/build/MullaCord-PublicCert.cer
           fail_on_unmatched_files: false
