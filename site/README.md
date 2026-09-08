@@ -8,6 +8,23 @@ pessoas baixarem o app. Os botões usam **links diretos e sem versão** para a
 `MullaCord-x64.dmg`, `MullaCord-PublicCert.cer`). Um `<script>` no fim do
 `index.html` troca o botão do topo pelo instalador do SO do visitante.
 
+## SEO
+
+- `<head>`: `<title>` e `description` com palavra-chave, `keywords`, `canonical`,
+  `robots`, Open Graph + Twitter Card e **JSON-LD** (`SoftwareApplication` +
+  `Organization` + `WebSite`) — pode gerar rich result de "app grátis".
+- `og-image.png` (1200×630) — imagem de compartilhamento.
+- `robots.txt` + `sitemap.xml` — o sitemap precisa ser enviado no
+  [Google Search Console](https://search.google.com/search-console) (a URL é de
+  projeto, `/MullaCord/`, então o `robots.txt` da raiz do `github.io` não é este).
+- `.nojekyll` — o Pages serve os arquivos como estão, sem processar Jekyll.
+- Ao mudar o domínio/URL, atualize `canonical`, `og:url`, `og:image`,
+  `sitemap.xml` e o JSON-LD.
+
+**Depois de publicar:** cadastre o site no Google Search Console, envie o
+`sitemap.xml`, e valide os dados estruturados no
+[Rich Results Test](https://search.google.com/test/rich-results).
+
 ## Ver localmente
 
 Abra `site/index.html` no navegador — não precisa de servidor.

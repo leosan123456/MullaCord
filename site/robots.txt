@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://leosan123456.github.io/MullaCord/sitemap.xml
