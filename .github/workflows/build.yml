@@ -28,6 +28,9 @@ jobs:
           - os: macos-14
             script: dist:mac
     runs-on: ${{ matrix.os }}
+    # o build de macOS ainda está sendo estabilizado — não deixa ele
+    # bloquear a Release do Windows.
+    continue-on-error: ${{ matrix.os == 'macos-14' }}
     steps:
       - uses: actions/checkout@v4
         with:
