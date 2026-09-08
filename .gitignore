@@ -35,3 +35,6 @@ Thumbs.db
 desktop/src.dist/
 desktop/build/*.pfx
 desktop/build/.cert-pass
+
+# empacotamentos avulsos na raiz (ex.: site.zip de teste do Pages)
+/*.zip

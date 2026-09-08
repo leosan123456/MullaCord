@@ -1,5 +1,37 @@
 # Changelog
 
+## 1.5.1
+
+Descoberta de pessoas na comunidade + entrada mais fácil.
+
+### Nós se encontram de verdade
+- **Firewall**: o nó escuta em 8787/TCP + 8788/UDP; se a entrada estiver
+  bloqueada os apps se veem na descoberta mas não sincronizam. Agora:
+  - o instalador tenta liberar (`netsh`, se rodar elevado);
+  - o app **detecta** que a LAN não o alcança e mostra um banner
+    **"Liberar no Firewall"** (roda `allow-firewall.ps1` com 1 UAC);
+  - `desktop/scripts/allow-firewall.ps1` — script avulso, cria/remove as regras.
+- **NIC errada**: `_own_address()` preferia a rota default (VMware/Hyper-V/WSL/VPN).
+  Agora escolhe um IP de faixa "de casa" e o outro nó também anota o **IP de
+  origem observado** — sempre o que realmente alcança.
+- Gossip mais rápido nos primeiros ~30s (2s) pra quem entrou ver todo mundo logo.
+
+### Escolha de nó no cliente
+- `resolveActive`: se um peer alcançável tem **mais gente** que o nó local, usa o
+  peer até o local emparelhar (antes voltava sempre pro local, mesmo vazio).
+- `migrateToLocalWhenReady`: só migra pro nó local quando a **contagem de
+  membros** bate, não só a própria conta.
+- Busca de pessoas mostra "ainda sincronizando…" em vez de "você é a única conta".
+- Barra lateral: dica **"sincronizando pessoas… 2/5"** enquanto o nó local pega o resto.
+
+### Entrar em comunidade
+- A tela de boas-vindas **varre a rede continuamente** (comunidade nova aparece sozinha).
+- Botão **"← trocar de comunidade"** sempre visível.
+- Na tela de credenciais, se aparecer **outra comunidade na rede**, um clique entra nela.
+
+### `/api/replica/status`
+- Agora traz `local_members` e os peers com `last_ok` — pra diagnóstico.
+
 ## 1.5.0
 
 Instalador compacto + macOS + build no CI.

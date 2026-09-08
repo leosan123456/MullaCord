@@ -115,7 +115,10 @@ Um PC com essas duas opções ligadas vira a "semente" estável da comunidade.
    um convite*.
 
 > **Firewall**: na 1ª vez o Windows pergunta — marque **Redes privadas** e
-> **Permitir acesso**.
+> **Permitir acesso**. Se você bloqueou sem querer, o app mostra um banner
+> **"Liberar no Firewall"** (aceite o aviso do Windows). Também dá pra rodar à mão:
+> `powershell -ExecutionPolicy Bypass -File "%LOCALAPPDATA%\Programs\MullaCord\resources\allow-firewall.ps1"`
+> (ou com `-Remove` pra tirar as regras).
 
 Dados em `%APPDATA%\Mulla Cord\communities\<id>\`.
 
@@ -164,6 +167,7 @@ em `.github/workflows/build.yml` num push de tag `v*`).
 | Instalador-web falhou ao baixar | Precisa de internet **durante** a instalação (ele puxa ~85 MB da Release do GitHub). Sem internet no PC de destino, use o **portátil**. |
 | macOS: "não é possível abrir — desenvolvedor não verificado" | Botão direito no app → **Abrir** → **Abrir**. Ou: `xattr -dr com.apple.quarantine "/Applications/Mulla Cord.app"` |
 | Não aparece nenhuma comunidade na rede | Mesma rede? Firewall liberado? Algum amigo com o app aberto? Peça um convite e cole |
+| Entrei na comunidade mas **não acho a outra pessoa** | Os nós não estão sincronizando. Quase sempre é **Firewall**: no PC que criou a comunidade, clique **"Liberar no Firewall"** no banner (ou rode o `allow-firewall.ps1`). Cheque também: os dois na mesma rede e sem "isolamento de clientes"/rede de convidado no Wi-Fi. A barra lateral mostra "sincronizando pessoas… X/Y" enquanto empareia. |
 | Amigo de outra cidade não conecta | UPnP falhou → port forwarding da 8787 + endereço público no painel de Comunidade, ou VPN |
 | Sem áudio na chamada | Permissão de microfone no Windows; conferir dispositivo em Configurações de voz |
 | Fechei o app e os amigos caíram | Ligue "Manter no ar em segundo plano" (Perfil → Comunidade), ou peça pra outra pessoa deixar o app aberto — a comunidade fica no ar por qualquer nó |
