@@ -77,6 +77,13 @@ if ($exes.Count -gt 0) {
 
 cmd /c "netsh advfirewall firewall add rule name=`"$RuleUdp`" dir=in action=allow protocol=UDP localport=$UdpPort enable=yes profile=private,domain" | Out-Null
 Write-Host "Liberada a descoberta UDP $UdpPort."
+
+# Descoberta de rede do Windows no perfil Particular — ajuda os PCs a se
+# enxergarem na LAN (broadcast/mDNS). So no perfil Particular; nunca no Publico.
+cmd /c 'netsh advfirewall firewall set rule group="Descoberta de Rede" new enable=Yes profile=private' 2>&1 | Out-Null
+cmd /c 'netsh advfirewall firewall set rule group="Network Discovery" new enable=Yes profile=private' 2>&1 | Out-Null
+Write-Host "Descoberta de rede (perfil Particular) ativada."
+
 Write-Host ""
 Write-Host "Pronto. Reabra o Mulla Cord nos dois PCs."
 exit 0
