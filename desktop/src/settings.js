@@ -3,6 +3,7 @@ import { $, el, state, currentGuild, toast, loadUi, saveUi, ACCENT_PRESETS, load
 import { P, PERMISSION_LABELS, guildPermissions, has } from "./permissions.js";
 import { icon } from "./icons.js";
 import { loadAudio, saveAudio, listDevices, createMeter } from "./audio.js";
+import { sfx, soundsEnabled, setSoundsEnabled } from "./sounds.js";
 
 // ---------------------------------------------------------------- util
 export function overlay(title, width = 460) {
@@ -398,6 +399,12 @@ export function appearanceControls() {
       row.append(el("span", null, label), cb);
       wrap.append(row);
     }
+
+    const sndRow = el("label", "toggle-row");
+    const sndCb = el("input"); sndCb.type = "checkbox"; sndCb.checked = soundsEnabled();
+    sndCb.addEventListener("change", () => { setSoundsEnabled(sndCb.checked); if (sndCb.checked) sfx.connect(); });
+    sndRow.append(el("span", null, "Sons de conexão (entrar/sair de call, mutar…)"), sndCb);
+    wrap.append(sndRow);
   }
 
   render();

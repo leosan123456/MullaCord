@@ -1,6 +1,7 @@
 // Malha WebRTC P2P para voz + compartilhamento de tela.
 // O servidor só repassa SDP/ICE (signaling). Mídia vai direto entre os pares.
 import { loadAudio, saveAudio, micConstraints } from "./audio.js";
+import { sfx } from "./sounds.js";
 
 // STUN: descobre o IP público de cada par (funciona pra maioria dos NATs).
 // Pra NAT simétrico / rede corporativa / operadora móvel é preciso um TURN
@@ -188,6 +189,7 @@ export class VoiceSession extends EventTarget {
 
   toggleMute() {
     this.muted = !this.muted;
+    (this.muted ? sfx.mute : sfx.unmute)();
     this._applyGate();
     this._emit("state", this.snapshot());
     return this.muted;
@@ -195,6 +197,7 @@ export class VoiceSession extends EventTarget {
 
   toggleDeafen() {
     this.deafened = !this.deafened;
+    (this.deafened ? sfx.deafen : sfx.undeafen)();
     if (this.deafened) this.muted = true;
     for (const [uid, p] of this.peers.entries()) {
       if (p.audioEl) p.audioEl.volume = this.deafened ? 0 : (this.settings.volumes[uid] ?? 1);
@@ -207,6 +210,7 @@ export class VoiceSession extends EventTarget {
   // -- tela ----------------------------------------------------------
   async startScreenShare() {
     this.screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: true });
+    sfx.screenOn();
     const track = this.screenStream.getVideoTracks()[0];
     track.onended = () => this.stopScreenShare();
     for (const { pc } of this.peers.values()) pc.addTrack(track, this.screenStream);
@@ -216,6 +220,7 @@ export class VoiceSession extends EventTarget {
 
   stopScreenShare() {
     if (!this.screenStream) return;
+    sfx.screenOff();
     const track = this.screenStream.getVideoTracks()[0];
     for (const { pc } of this.peers.values()) {
       const sender = pc.getSenders().find((s) => s.track === track);
@@ -333,6 +338,7 @@ export class VoiceSession extends EventTarget {
   }
   async _onPeerJoin({ detail }) {
     if (detail.channel_id !== this.channelId) return;
+    sfx.peerJoin();
     this._makePeer(detail.user_id);
     if (this.myId > detail.user_id) await this._offer(detail.user_id);
   }
@@ -340,6 +346,7 @@ export class VoiceSession extends EventTarget {
     if (detail.channel_id !== this.channelId) return;
     const entry = this.peers.get(detail.user_id);
     if (entry) {
+      sfx.peerLeave();
       clearTimeout(entry._recover);
       entry.pc.close();
       entry.audioEl?.remove();

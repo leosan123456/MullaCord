@@ -12,6 +12,7 @@ import {
   openGuildMenuAction,
 } from "./guild.js";
 import { openUserSettings, openVoiceSettings, openShareCommunity } from "./settings.js";
+import { sfx } from "./sounds.js";
 import {
   resolveActive, getSession, saveSession, clearSession, SELF_URL,
 } from "./community.js";
@@ -641,9 +642,19 @@ function wireGateway(gw) {
     // re-anuncia o jogo atual ao (re)conectar
     if (state.myGame) state.gw.setActivity(state.myGame.name, state.myGame.started_at);
   });
-  gw.on("conn", () => renderConnStatus());
+  let _gwWasOpen = false;
+  gw.on("conn", (d) => {
+    if (d?.state === "open") {
+      if (_gwWasOpen === "lost") sfx.connect();   // reconectou depois de cair
+      _gwWasOpen = true;
+    }
+    renderConnStatus();
+  });
   gw.on("latency", () => renderConnStatus());
-  gw.on("disconnected", () => renderConnStatus());
+  gw.on("disconnected", () => {
+    if (_gwWasOpen === true) { _gwWasOpen = "lost"; sfx.disconnect(); }
+    renderConnStatus();
+  });
 
   gw.on("activity", (d) => {
     if (d.user_id === state.me.id) return;
@@ -1519,6 +1530,7 @@ async function startVoice(channelId, label) {
   v.on("state", renderVoice);
   try {
     await v.start();
+    sfx.joinCall();
     setSignalLevel(0.5);
     $("voice-panel").hidden = false;
     $("voice-title").dataset.name = label || "Chamada de voz";
@@ -1533,6 +1545,7 @@ async function startVoice(channelId, label) {
 }
 
 $("btn-leave-voice").addEventListener("click", () => {
+  if (state.voice) sfx.leaveCall();
   state.voice?.leave();
   state.voice = null;
   setSignalLevel(0);
@@ -1602,19 +1615,57 @@ function renderVoice(snap) {
 
   const box = $("videos");
   box.replaceChildren();
-  if (snap.sharingScreen && snap.screenStream) box.append(videoTile(snap.screenStream, "Sua tela", true, null));
-  snap.peers.forEach((p) => box.append(videoTile(p.stream, memberName(p.userId), false, p)));
-  if (!snap.peers.length && !snap.sharingScreen)
+
+  const screens = [];
+  const people = [];
+  const hasVid = (s) => s && s.getVideoTracks().length > 0;
+
+  if (snap.sharingScreen && hasVid(snap.screenStream))
+    screens.push(videoTile(snap.screenStream, "Sua tela", true, null, true));
+  snap.peers.forEach((p) => {
+    (hasVid(p.stream) ? screens : people).push(
+      videoTile(p.stream, memberName(p.userId), false, p, hasVid(p.stream)),
+    );
+  });
+
+  box.classList.toggle("has-screen", screens.length > 0);
+  box.classList.toggle("multi-screen", screens.length > 1);
+
+  screens.forEach((t) => box.append(t));
+  if (people.length) {
+    if (screens.length) {
+      const strip = el("div", "participants");
+      people.forEach((t) => strip.append(t));
+      box.append(strip);
+    } else {
+      people.forEach((t) => box.append(t));
+    }
+  }
+  if (!screens.length && !people.length)
     box.append(el("p", "muted small", "Esperando outras pessoas entrarem…"));
 }
 
-function videoTile(stream, label, muted, peer) {
-  const tile = el("div", "tile");
+function videoTile(stream, label, muted, peer, isScreen) {
+  const tile = el("div", "tile" + (isScreen ? " screen" : ""));
   if (stream && stream.getVideoTracks().length > 0) {
     const video = el("video");
     video.autoplay = true; video.playsInline = true; video.muted = muted;
     video.srcObject = stream;
     tile.append(video);
+
+    const ctl = el("div", "tctl");
+    const goFs = () => {
+      if (document.fullscreenElement) document.exitFullscreen?.();
+      else tile.requestFullscreen?.().catch(() => {});
+    };
+    const fs = el("button"); fs.title = "Tela cheia"; fs.append(icon("maximize", 14));
+    fs.addEventListener("click", goFs);
+    const fit = el("button"); fit.title = "Preencher / ajustar";
+    fit.append(icon("image", 14));
+    fit.addEventListener("click", () => video.classList.toggle("fill"));
+    ctl.append(fit, fs);
+    tile.append(ctl);
+    video.addEventListener("dblclick", goFs);
   } else if (peer) {
     tile.append(avatarNode(peer.userId, "avatar", label));
   } else {
