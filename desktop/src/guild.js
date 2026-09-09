@@ -179,8 +179,15 @@ export function openGuildMenuAction(act) {
 async function inviteModal(g) {
   const res = await state.api.createInvite(g.id, { max_uses: 0 });
   modal("Convite do servidor", (body) => {
-    body.append(el("p", "muted", "Compartilhe este código. Quem tiver acesso ao servidor pode entrar."));
-    body.append(el("div", "invite-code", res.code));
+    body.append(el("p", "muted", "Compartilhe este código com alguém da comunidade. Em Adicionar servidor → Entrar por convite."));
+    const codeEl = el("div", "invite-code", res.code);
+    body.append(codeEl);
+    const copy = el("button", "ghost", "Copiar código");
+    copy.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(res.code); copy.textContent = "Copiado ✓"; toast("Código copiado", "success"); }
+      catch { const r = document.createRange(); r.selectNode(codeEl); getSelection().removeAllRanges(); getSelection().addRange(r); }
+    });
+    body.append(copy);
   }, [["Fechar", () => {}]]);
 }
 

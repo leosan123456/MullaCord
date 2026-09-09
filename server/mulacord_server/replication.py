@@ -554,6 +554,29 @@ async def _sync_with(peer: str) -> None:
     await db.execute("UPDATE repl_peers SET last_ok=? WHERE url=?", (int(time.time()), peer))
 
 
+_last_sync_now = 0.0
+_sync_now_lock = asyncio.Lock()
+
+
+async def sync_now(min_interval: float = 1.5, peer_timeout: float = 4.0) -> None:
+    """Uma rodada de sync IMEDIATA — pra quando algo que já devia existir aqui
+    (usuário recém-criado noutro nó, convite recém-feito) ainda não chegou pela
+    gossip. Throttle simples pra não virar vetor de abuso."""
+    global _last_sync_now
+    now = time.time()
+    if now - _last_sync_now < min_interval:
+        return
+    async with _sync_now_lock:
+        if time.time() - _last_sync_now < min_interval:
+            return
+        _last_sync_now = time.time()
+        for peer in (await known_peers())[:4]:
+            try:
+                await asyncio.wait_for(_sync_with(peer), peer_timeout)
+            except Exception:  # noqa: BLE001
+                pass
+
+
 async def gossip_once() -> None:
     peers = await known_peers()
     for peer in peers[:6]:

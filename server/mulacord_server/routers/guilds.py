@@ -199,11 +199,24 @@ async def create_invite(gid: int, body: InviteCreate, user=CurrentUser) -> dict:
     return {"code": code, "guild_id": gid, "max_uses": body.max_uses, "expires_at": expires}
 
 
-@router.get("/invites/{code}")
-async def preview_invite(code: str, user=CurrentUser) -> dict:
+async def _find_invite(code: str):
     inv = await db.fetchone("SELECT * FROM invites WHERE code = ?", (code,))
     if inv is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Convite inválido")
+        # convite pode ter acabado de ser criado noutro nó — sincroniza e reveja
+        from .. import replication
+        await replication.sync_now()
+        inv = await db.fetchone("SELECT * FROM invites WHERE code = ?", (code,))
+    return inv
+
+
+@router.get("/invites/{code}")
+async def preview_invite(code: str, user=CurrentUser) -> dict:
+    inv = await _find_invite(code)
+    if inv is None:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "Convite não encontrado. Se ele acabou de ser criado, tente de novo em instantes.",
+        )
     g = await db.fetchone("SELECT id, name, icon FROM guilds WHERE id = ?", (inv["guild_id"],))
     count = await db.fetchone(
         "SELECT COUNT(*) AS n FROM guild_members WHERE guild_id = ?", (inv["guild_id"],)
@@ -213,9 +226,12 @@ async def preview_invite(code: str, user=CurrentUser) -> dict:
 
 @router.post("/invites/{code}", status_code=status.HTTP_201_CREATED)
 async def use_invite(code: str, user=CurrentUser) -> dict:
-    inv = await db.fetchone("SELECT * FROM invites WHERE code = ?", (code,))
+    inv = await _find_invite(code)
     if inv is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Convite inválido")
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "Convite não encontrado. Se ele acabou de ser criado, tente de novo em instantes.",
+        )
     if inv["expires_at"] and datetime.fromisoformat(inv["expires_at"]) < datetime.now(timezone.utc):
         raise HTTPException(status.HTTP_410_GONE, "Convite expirado")
     if inv["max_uses"] and inv["uses"] >= inv["max_uses"]:

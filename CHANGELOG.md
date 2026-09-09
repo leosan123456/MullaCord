@@ -2,7 +2,17 @@
 
 ## 1.5.3
 
-WebRTC (voz/tela) mais robusto + STUN/TURN configurável.
+WebRTC (voz/tela) mais robusto + STUN/TURN configurável + correções de sync.
+
+### Correções
+- **"Convite inválido" ao entrar num servidor da mesma comunidade**: o convite
+  (ou a conta de quem acabou de se cadastrar noutro nó) ainda não tinha
+  replicado. Agora o nó faz um **sync na hora** quando não acha o convite/usuário
+  e só recusa se ele realmente não existir. O cliente ainda re-tenta por ~15s
+  ("Procurando o convite…"). Mensagem de erro mais clara.
+- Convite do servidor: botão **Copiar código**.
+
+### WebRTC
 
 - **STUN**: 5 servidores do Google (era 2), `iceCandidatePoolSize`, `bundlePolicy`.
 - **Auto-recuperação**: se a conexão de voz cai (troca de rede, NAT rebind), o

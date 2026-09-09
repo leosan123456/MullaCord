@@ -1658,6 +1658,24 @@ $("group-create").addEventListener("click", async () => {
   } catch (e) { toast(e.message, "error"); }
 });
 
+// Usa um convite de servidor com re-tentativa: logo depois de alguém criar o
+// convite, ele pode não ter replicado pro nó em que estamos — tenta por ~15s.
+async function joinGuildByCode(code, btn) {
+  const deadline = Date.now() + 15000;
+  let attempt = 0;
+  while (true) {
+    try {
+      return await state.api.useInvite(code);
+    } catch (e) {
+      const notFound = /não encontrado|nao encontrado|inválido|invalido|404/i.test(e.message);
+      if (!notFound || Date.now() > deadline) throw e;
+      attempt++;
+      if (btn) { btn.disabled = true; btn.textContent = `Procurando o convite… (${attempt})`; }
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+  }
+}
+
 // ================= ADICIONAR SERVIDOR =================
 function addServerModal() {
   const back = el("div", "modal");
@@ -1689,15 +1707,22 @@ function addServerModal() {
   card.querySelector("#s-cancel").addEventListener("click", () => back.remove());
   back.addEventListener("click", (e) => { if (e.target === back) back.remove(); });
   card.querySelector("#s-ok").addEventListener("click", async () => {
+    const okBtn = card.querySelector("#s-ok");
     try {
       let g;
-      if (mode === "create") g = await state.api.createGuild(card.querySelector("#s-name").value.trim());
-      else g = await state.api.useInvite(card.querySelector("#s-code").value.trim());
+      if (mode === "create") {
+        g = await state.api.createGuild(card.querySelector("#s-name").value.trim());
+      } else {
+        const code = card.querySelector("#s-code").value.trim().replace(/^.*\//, "");
+        if (!code) { toast("Cole o código do convite.", "error"); return; }
+        g = await joinGuildByCode(code, okBtn);
+      }
       state.guilds.set(g.id, g);
       back.remove();
       setView("guild", g.id);
       toast(mode === "create" ? "Servidor criado" : "Você entrou no servidor", "success");
     } catch (e) { toast(e.message, "error"); }
+    finally { okBtn.disabled = false; okBtn.textContent = mode === "create" ? "Criar" : "Entrar"; }
   });
   hydrateIcons(card);
 }

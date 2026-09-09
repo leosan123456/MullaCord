@@ -21,6 +21,12 @@ async def get_current_user(
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Token inválido ou expirado")
     row = await db.fetchone("SELECT * FROM users WHERE id = ?", (user_id,))
     if row is None:
+        # token válido (assinado com a chave da comunidade) mas a conta ainda não
+        # replicou pra este nó — força um sync e tenta de novo antes de recusar.
+        from . import replication
+        await replication.sync_now()
+        row = await db.fetchone("SELECT * FROM users WHERE id = ?", (user_id,))
+    if row is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Usuário não encontrado")
     return row
 
