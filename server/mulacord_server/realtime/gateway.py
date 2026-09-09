@@ -111,6 +111,12 @@ async def gateway(ws: WebSocket) -> None:
             return
         user = await db.fetchone("SELECT * FROM users WHERE id = ?", (uid,))
         if user is None:
+            # conta ainda não replicou pra este nó — sincroniza e tenta de novo
+            from .. import replication
+            await replication.sync_now()
+            user = await db.fetchone("SELECT * FROM users WHERE id = ?", (uid,))
+        if user is None:
+            await ws.send_json({"t": "error", "message": "conta ainda não sincronizada"})
             await ws.close(code=4001)
             return
 

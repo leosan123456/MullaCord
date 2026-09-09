@@ -72,6 +72,19 @@ export class Gateway extends EventTarget {
     try { this.ws && this.ws.close(); } catch {}
   }
 
+  // Aponta o gateway pra outro nó (ex.: o coordenador mudou) sem recriar o objeto
+  // — os handlers .on(...) já registrados continuam valendo.
+  rebind(baseUrl) {
+    const next = baseUrl.replace(/^http/, "ws").replace(/\/+$/, "") + "/gateway";
+    if (next === this.wsUrl) return false;
+    this.wsUrl = next;
+    this._backoff = 1000;
+    this.attempt = 1;
+    try { this.ws && this.ws.close(); } catch {}
+    if (this.state === "closed" || this._closedByUser) this.connect();
+    return true;
+  }
+
   on(type, cb) { this.addEventListener(type, (e) => cb(e.detail)); }
 
   _ping() { this._send({ op: "heartbeat", ts: Date.now() }); }

@@ -99,23 +99,22 @@ export async function resolveActive(community, { bootstrap = [], preferRemote = 
     rememberAddrs(community.id, remotes.map((n) => n.url.replace(/^https?:\/\//, "")));
   }
 
-  const self = alive.find((n) => n.source === "self");
-  const selfOk = self && (!community || self.info.community_id === community.id);
+  // Elege UM nó da comunidade pra ser o ponto de encontro do tempo real (voz,
+  // presença, "digitando", sinalização WebRTC). Tudo isso é estado efêmero e não
+  // replica pelo oplog — se cada um ficar no próprio nó, uma call nunca conecta.
+  // A eleição é determinística (prioridade → mais antigo → menor id), então todos
+  // os clientes convergem pro mesmo coordenador. O nó local segue rodando como
+  // réplica/semente; o cliente só *conversa* com o coordenador.
+  const eligible = alive.filter(
+    (n) => !community || n.info.community_id === community.id || n.source === "bootstrap",
+  );
+  eligible.sort(_elect);
 
-  remotes.sort(_elect);
-  const bestRemote = remotes[0];
-  const memb = (n) => (n && n.info && Number(n.info.members)) || 0;
-
-  if (preferRemote && bestRemote) return bestRemote;
-
-  // O padrão é o nó local (leitura instantânea + realtime pela porta local).
-  // MAS se um peer alcançável tem mais gente que o local, o local ainda está
-  // sincronizando — usa o peer até ele emparelhar, senão o usuário "não acha
-  // ninguém". migrateToLocalWhenReady() troca de volta quando o local iguala.
-  if (selfOk && bestRemote && memb(bestRemote) > memb(self)) return bestRemote;
-  if (selfOk) return self;
-  if (bestRemote) return bestRemote;
-  return self || { url: SELF_URL, info: null, source: "self" };
+  if (preferRemote) {
+    const r = eligible.find((n) => n.source !== "self" && !n.url.includes("127.0.0.1"));
+    if (r) return r;
+  }
+  return eligible[0] || { url: SELF_URL, info: null, source: "self" };
 }
 
 export { SELF_URL, probe };

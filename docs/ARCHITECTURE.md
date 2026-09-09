@@ -12,17 +12,23 @@
 ```
 
 - **Sem nuvem, sem "hospedar"**: quando o app abre, ele sobe um **nó** em segundo
-  plano (`main.js` → `startHost()` no `whenReady`). O cliente fala sempre com o
-  **nó local** (`127.0.0.1:8787`) — leitura instantânea.
+  plano (`main.js` → `startHost()` no `whenReady`).
+- **O cliente fala com o coordenador**: o estado do tempo real (presença,
+  "digitando", quem está em qual call, sinalização WebRTC) **não replica** — é só
+  RAM no nó. Se cada cliente ficar no próprio nó, uma call nunca conecta. Então
+  `community.js resolveActive()` elege UM nó (`node_priority desc, started_at asc,
+  node_id asc`) e **todos os clientes convergem pra ele** (API + gateway). O nó
+  local segue rodando como réplica/semente; `app.js keepOnCoordinator()` re-aponta
+  se a eleição virar (com histerese) ou se o gateway cair.
 - **Comunidade**: um grupo lógico de nós que compartilham tudo, identificado por
   `community_id` (+ segredo opcional). O Electron guarda a comunidade atual em
   `userData/community.json`; cada comunidade tem seu próprio data dir
   (`userData/communities/<id>/`).
 - **Réplica completa**: todo nó tem contas, amigos, canais, cargos, mensagens e
   anexos inteiros. Os nós trocam um log de operações entre si e o estado converge.
-- **Coordenador** (só pra quem o cliente conecta quando o nó local ainda não
-  sincronizou): eleito por `(node_priority desc, started_at asc, node_id asc)`.
-- **Voz/tela**: WebRTC em malha (mesh). O nó só repassa SDP/ICE. Bom até ~4-5 por call.
+- **Voz/tela**: WebRTC em malha (mesh). O nó (coordenador) só repassa SDP/ICE
+  entre os pares — todos na mesma call ficam nesse nó. Bom até ~4-5 por call.
+  STUN embutido; TURN opcional por comunidade (`/api/info` → `ice_servers`).
 
 ## Conectividade e descoberta
 
@@ -39,8 +45,12 @@
   no roteador; se der certo, grava `publicHost` = `<ip-externo>:8787` e reinicia o nó.
 - **Peers de partida** — `MULACORD_BOOTSTRAP_PEERS` (convite + `publicHost` + IPs de
   LAN da mesma comunidade); depois os nós aprendem peers-de-peers pela `/sync`.
-- **Reconexão** — backoff exponencial (1s→15s) + botão "tentar agora"; após entrar
-  por um peer, `migrateToLocalWhenReady()` troca pro nó local quando ele sincroniza.
+- **Reconexão** — backoff exponencial (1s→15s) + botão "tentar agora".
+  `keepOnCoordinator()` checa a eleição a cada 12s e `gw.rebind()` pro novo nó
+  quando o coordenador muda (histerese de 2 rodadas, exceto se o gw caiu).
+- **Convite/conta ainda não replicou?** — `use_invite`, `preview_invite` e o
+  `identify` do gateway chamam `replication.sync_now()` (uma rodada imediata,
+  throttle 1.5s) antes de recusar. O cliente ainda re-tenta o convite por ~15s.
 
 `GET /api/info` → `{ service, server_id, node_id, name, version, members,
 open_registration, discovery_port, community_id, community_name, node_priority,
@@ -77,9 +87,10 @@ tabela real) se for o evento mais novo daquela linha; 2 passadas extras cobrem
 **Compactação** — `_prune_oplog()` (a cada ~5 min) apaga eventos superados com mais
 de 10 min: pra LWW basta 1 evento por linha (o mais novo) sobreviver.
 
-**Cliente sempre local** — `community.js resolveActive()` prefere o nó local
-(`127.0.0.1`); só usa um peer com `preferRemote:true` logo após entrar numa
-comunidade, enquanto o nó local ainda enche.
+**Cliente no coordenador** — `community.js resolveActive()` elege o nó
+(`node_priority desc, started_at asc, node_id asc`) entre os alcançáveis e
+retorna ele; com 1 nó só, é o local. `preferRemote:true` logo após entrar numa
+comunidade força um peer que já tem os dados.
 
 ## Esquema de dados (SQLite)
 

@@ -450,11 +450,44 @@ async function boot(url, token) {
   state.gw.connect();
   initGameDetection();
 
-  // entrou por um peer? migra pro nó local assim que ele terminar de sincronizar
-  if (!url.includes("127.0.0.1")) migrateToLocalWhenReady(token);
-
+  keepOnCoordinator(token);
   checkFirewallBanner();
   startSyncHint();
+}
+
+// O tempo real (voz, presença, "digitando", sinalização WebRTC) só funciona
+// entre quem está no MESMO nó — esse estado não replica. Então o cliente segue o
+// coordenador eleito: se ele mudar (entrou/saiu da rede, eleição virou), a gente
+// re-aponta a API e o gateway pra lá. O nó local continua rodando como réplica.
+let _coordTimer = null;
+let _coordCandidate = null;   // pra histerese: só troca se o mesmo nó aparecer 2x
+async function keepOnCoordinator(token) {
+  clearInterval(_coordTimer);
+  const check = async () => {
+    if ($("app").hidden || !community) return;
+    let node;
+    try { node = await resolveActive(community); } catch { return; }
+    if (!node?.url) return;
+    if (node.url === state.serverUrl) { _coordCandidate = null; return; }
+
+    // histerese: o candidato precisa se repetir numa 2ª rodada antes de trocar
+    // (a descoberta na LAN pode piscar). Exceção: se o gw caiu, troca na hora.
+    const gwDown = state.gw && (state.gw.state === "reconnecting" || state.gw.state === "closed");
+    if (!gwDown && _coordCandidate !== node.url) { _coordCandidate = node.url; return; }
+    _coordCandidate = null;
+
+    // não troca no meio de uma call a não ser que o nó atual tenha caído
+    if (state.voice && !gwDown) return;
+
+    activeNode = node;
+    state.serverUrl = node.url;
+    state.api = new Api(node.url, token);
+    saveSession(community.id, { token, url: node.url, node_id: node.info?.node_id || null });
+    state.gw.rebind(node.url);
+    window.dispatchEvent(new CustomEvent("mula:refresh"));
+  };
+  await check();
+  _coordTimer = setInterval(check, 12000);
 }
 
 // -------- Firewall: o nó não é alcançável na LAN? --------
@@ -514,38 +547,6 @@ async function updateSyncHint() {
       el0.hidden = true;
     }
   } catch { el0.hidden = true; }
-}
-
-async function migrateToLocalWhenReady(token) {
-  const local = SELF_URL;
-  const remoteUrl = state.serverUrl;
-  toast("Sincronizando esta comunidade no seu PC…", "info");
-  for (let i = 0; i < 60; i++) {
-    await new Promise((r) => setTimeout(r, 3000));
-    if (state.serverUrl === local) return;
-    try {
-      const info = await new Api(local).info();
-      if (info.community_id !== community?.id) continue;
-      const me = await new Api(local, token).me();   // nó local já conhece minha conta?
-      if (!me?.id) continue;
-      // ...e já puxou (quase) todo mundo? senão o usuário migra pra um nó que
-      // ainda "não acha ninguém". Tolera 1 de diferença (corrida com cadastros).
-      let remoteMembers = 0;
-      try { remoteMembers = (await new Api(remoteUrl).info()).members || 0; } catch {}
-      if ((info.members || 0) + 1 < remoteMembers) continue;
-
-      state.serverUrl = local;
-      state.api = new Api(local, token);
-      saveSession(community.id, { token, url: local });
-      state.gw?.close();
-      state.gw = new Gateway(local, token);
-      wireGateway(state.gw);
-      state.gw.connect();
-      window.dispatchEvent(new CustomEvent("mula:refresh"));
-      toast("Pronto — tudo sincronizado neste PC", "success");
-      return;
-    } catch { /* ainda não */ }
-  }
 }
 
 // ================= DETECÇÃO DE JOGO =================
