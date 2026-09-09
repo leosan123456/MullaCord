@@ -18,6 +18,52 @@ import {
 
 initTheme();
 hydrateIcons();
+initUpdater();
+
+// ---------------- atualização automática ----------------
+function initUpdater() {
+  const banner = $("update-banner");
+  if (!banner || !window.mula?.updater) return;
+  const text = $("update-banner-text");
+  const action = $("update-banner-action");
+  let dismissed = "";
+
+  action.addEventListener("click", async () => {
+    const s = await window.mula.updater.state();
+    if (s.status === "ready") {
+      action.disabled = true; action.textContent = "Reiniciando…";
+      await window.mula.updater.install();
+    } else if (s.status === "available-manual") {
+      window.mula.updater.openDownload();
+    }
+  });
+  $("update-banner-dismiss").addEventListener("click", async () => {
+    dismissed = (await window.mula.updater.state()).version || "x";
+    banner.hidden = true;
+  });
+
+  const render = (s) => {
+    if (!s || s.status === "idle" || s.status === "checking" || s.status === "disabled" || s.status === "error") {
+      banner.hidden = true; return;
+    }
+    if (s.version && s.version === dismissed && s.status !== "ready") { banner.hidden = true; return; }
+    banner.hidden = false;
+    if (s.status === "downloading") {
+      text.textContent = `Baixando atualização ${s.version || ""}… ${s.percent || 0}%`;
+      action.hidden = true;
+    } else if (s.status === "ready") {
+      text.textContent = `Mulla Cord ${s.version} pronto — instala ao fechar o app.`;
+      action.hidden = false; action.disabled = false; action.textContent = "Reiniciar agora";
+    } else if (s.status === "available-manual") {
+      text.textContent = `Mulla Cord ${s.version} disponível.`;
+      action.hidden = false; action.disabled = false; action.textContent = "Baixar";
+    }
+    hydrateIcons(banner);
+  };
+
+  window.mula.updater.onState(render);
+  window.mula.updater.state().then(render).catch(() => {});
+}
 
 // ---------------- linha de sinal (assinatura) ----------------
 let spineWave = null, emptyWave = null;

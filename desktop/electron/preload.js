@@ -42,6 +42,14 @@ contextBridge.exposeInMainWorld("mula", {
     set: (patch) => ipcRenderer.invoke("prefs:set", patch),
   },
 
+  updater: {
+    state: () => ipcRenderer.invoke("updater:state"),
+    check: () => ipcRenderer.invoke("updater:check"),
+    install: () => ipcRenderer.invoke("updater:install"),
+    openDownload: () => ipcRenderer.invoke("updater:open-download"),
+    onState: (cb) => ipcRenderer.on("updater-state", (_e, s) => cb(s)),
+  },
+
   game: {
     configure: (cfg) => ipcRenderer.invoke("game:configure", cfg),
     candidates: () => ipcRenderer.invoke("game:candidates"),

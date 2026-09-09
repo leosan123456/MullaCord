@@ -1,6 +1,6 @@
 {
   "name": "mulacord-desktop",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "App desktop do Mulacord (Electron)",
   "main": "electron/main.js",
   "author": "Mulacord",
@@ -16,6 +16,9 @@
     "dist": "npm run cert && npm run build:server && npm run prep && electron-builder --win --publish never",
     "dist:mac": "npm run build:server && npm run prep && electron-builder --mac --publish never",
     "dist:dir": "npm run build:server && npm run prep && electron-builder --win --dir"
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
   },
   "devDependencies": {
     "@electron/fuses": "^1.8.0",

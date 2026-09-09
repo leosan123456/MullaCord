@@ -9,6 +9,7 @@ const crypto = require("crypto");
 const dgram = require("dgram");
 const { spawn } = require("child_process");
 const games = require("./games");
+const updater = require("./updater");
 
 const isDev = !app.isPackaged;
 let mainWindow = null;
@@ -466,8 +467,23 @@ function refreshTrayMenu() {
       click: (mi) => writePrefs({ openAtLogin: mi.checked }),
     },
     { type: "separator" },
+    updaterTrayItem(),
     { label: "Sair", click: () => { quitting = true; app.quit(); } },
   ]));
+}
+
+function updaterTrayItem() {
+  const s = updater.getState();
+  if (s.status === "ready") {
+    return { label: `Reiniciar para atualizar (${s.version})`, click: () => updater.install() };
+  }
+  if (s.status === "downloading") {
+    return { label: `Baixando atualização… ${s.percent || 0}%`, enabled: false };
+  }
+  if (s.status === "available-manual") {
+    return { label: `Baixar Mulla Cord ${s.version}`, click: () => updater.openDownload() };
+  }
+  return { label: "Verificar atualizações", click: () => updater.check() };
 }
 
 function createTray() {
@@ -506,6 +522,7 @@ function createWindow() {
 
   win.webContents.on("did-finish-load", () => {
     if (pendingDeepLink) { win.webContents.send("deep-link", pendingDeepLink); pendingDeepLink = null; }
+    updater.init(win);
   });
 
   // com "manter no ar" ligado, fechar a janela só esconde — o nó segue no enxame
@@ -592,6 +609,13 @@ function createWindow() {
     { useSystemPicker: false }
   );
 }
+
+// atualização automática (handlers no escopo do módulo — não dependem da janela)
+ipcMain.handle("updater:state", () => updater.getState());
+ipcMain.handle("updater:check", () => { updater.check(); return updater.getState(); });
+ipcMain.handle("updater:install", () => updater.install());
+ipcMain.handle("updater:open-download", () => updater.openDownload());
+updater.onStateChange(() => { try { refreshTrayMenu(); } catch {} });
 
 app.whenReady().then(() => {
   const link = process.argv.find((a) => a.startsWith("mula://"));
