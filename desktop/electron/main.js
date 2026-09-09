@@ -44,6 +44,7 @@ function writeCommunity(c) {
     publicHost: c.publicHost || "",
     bootstrap: Array.isArray(c.bootstrap) ? c.bootstrap.slice(0, 20) : [],
     iceServers: typeof c.iceServers === "string" ? c.iceServers.trim() : "",
+    wanDiscovery: c.wanDiscovery === false ? false : true,
   };
   fs.mkdirSync(path.dirname(communityConfigPath()), { recursive: true });
   fs.writeFileSync(communityConfigPath(), JSON.stringify(full, null, 2), "utf-8");
@@ -412,6 +413,7 @@ function startHost(opts = {}) {
     MULACORD_BOOTSTRAP_PEERS: [...boot].join(","),
     MULACORD_SERVER_NAME: c.name,
     MULACORD_ICE_SERVERS: normalizeIceServers(c.iceServers),
+    MULACORD_DHT: c.wanDiscovery === false ? "0" : "1",
   };
   delete env.ELECTRON_RUN_AS_NODE;
   if (opts.name) { env.MULACORD_SERVER_NAME = opts.name; env.MULACORD_COMMUNITY_NAME = opts.name; }

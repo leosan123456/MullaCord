@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import __version__
+from . import dht
 from . import discovery
 from . import replication
 from .config import (
@@ -36,8 +37,11 @@ async def lifespan(app: FastAPI):
         if p:
             await replication.note_peer(p if p.startswith("http") else f"http://{p}", COMMUNITY_ID)
     await replication.start_gossip()
-    await discovery.start(int(os.environ.get("MULACORD_PORT", "8787")))
+    _port = int(os.environ.get("MULACORD_PORT", "8787"))
+    await discovery.start(_port)
+    await dht.start(_port, COMMUNITY_ID, os.environ.get("MULACORD_COMMUNITY_SECRET", ""))
     yield
+    await dht.stop()
     await discovery.stop()
     await replication.stop_gossip()
     await db.close()

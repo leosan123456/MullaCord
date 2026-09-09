@@ -182,6 +182,19 @@ function communityControls(closeModal) {
   });
   box.append(labeled("Servidores STUN/TURN (avançado)", ice), iceSave);
 
+  // descoberta pela internet (DHT do BitTorrent — sem servidor)
+  const wanRow = el("label", "toggle-row");
+  const wanCb = el("input"); wanCb.type = "checkbox";
+  wanCb.checked = c.wanDiscovery !== false;
+  wanCb.addEventListener("change", async () => {
+    try { await window.mula.community.update({ wanDiscovery: wanCb.checked }); toast("Salvo — reiniciando o nó", "success"); }
+    catch (e) { toast(e.message, "error"); wanCb.checked = !wanCb.checked; }
+  });
+  wanRow.append(el("span", null, "Achar membros pela internet (DHT)"), wanCb);
+  box.append(wanRow);
+  box.append(el("p", "field-hint",
+    "Usa a DHT pública do BitTorrent pra achar quem está noutra rede — sem servidor. A porta 8787 ainda precisa estar aberta (UPnP ou redirecionamento) num dos PCs pra conexão fechar."));
+
   // preferências deste dispositivo (bandeja / semente do enxame)
   if (window.mula?.prefs) {
     box.append(el("p", "sub-label", "Este dispositivo"));
