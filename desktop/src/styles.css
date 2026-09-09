@@ -302,7 +302,8 @@ input, select, textarea {
   border: 1px solid var(--border);
   transition: border-color 140ms, box-shadow 140ms, background 140ms;
 }
-input::placeholder { color: var(--text-faint); }
+input::placeholder, textarea::placeholder { color: var(--text-faint); }
+textarea { resize: vertical; min-height: 60px; font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 12px; line-height: 1.5; }
 input:focus, select:focus, textarea:focus {
   outline: none; border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-ring);

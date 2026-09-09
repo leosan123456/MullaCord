@@ -43,10 +43,33 @@ function writeCommunity(c) {
     priority: Number(c.priority) || 0,
     publicHost: c.publicHost || "",
     bootstrap: Array.isArray(c.bootstrap) ? c.bootstrap.slice(0, 20) : [],
+    iceServers: typeof c.iceServers === "string" ? c.iceServers.trim() : "",
   };
   fs.mkdirSync(path.dirname(communityConfigPath()), { recursive: true });
   fs.writeFileSync(communityConfigPath(), JSON.stringify(full, null, 2), "utf-8");
   return full;
+}
+
+// Converte o campo "Servidores STUN/TURN" (Perfil → Comunidade) pro JSON que o
+// servidor espera em MULACORD_ICE_SERVERS. Aceita:
+//   - um array JSON no padrão RTCIceServer (usado como está), ou
+//   - uma linha por servidor:  "turn:host:3478 usuario senha"  /  "stun:host:3478"
+function normalizeIceServers(raw) {
+  const txt = (typeof raw === "string" ? raw : "").trim();
+  if (!txt) return "";
+  try {
+    const arr = JSON.parse(txt);
+    if (Array.isArray(arr)) return JSON.stringify(arr);
+  } catch { /* não é JSON — trata como lista de linhas */ }
+  const out = [];
+  for (const line of txt.split(/\r?\n/)) {
+    const parts = line.trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) continue;
+    const [url, username, credential] = parts;
+    if (!/^(stun|turns?):/i.test(url)) continue;
+    out.push(username && credential ? { urls: url, username, credential } : { urls: url });
+  }
+  return out.length ? JSON.stringify(out) : "";
 }
 
 // Garante que sempre exista uma comunidade (cria uma no primeiro uso).
@@ -388,6 +411,7 @@ function startHost(opts = {}) {
     MULACORD_PUBLIC_HOST: c.publicHost || "",
     MULACORD_BOOTSTRAP_PEERS: [...boot].join(","),
     MULACORD_SERVER_NAME: c.name,
+    MULACORD_ICE_SERVERS: normalizeIceServers(c.iceServers),
   };
   delete env.ELECTRON_RUN_AS_NODE;
   if (opts.name) { env.MULACORD_SERVER_NAME = opts.name; env.MULACORD_COMMUNITY_NAME = opts.name; }

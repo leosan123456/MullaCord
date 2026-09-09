@@ -13,6 +13,7 @@ from .config import (
     COMMUNITY_ID,
     COMMUNITY_NAME,
     DISCOVERY_PORT,
+    ICE_SERVERS,
     NODE_PRIORITY,
     OPEN_REGISTRATION,
     PUBLIC_HOST,
@@ -70,6 +71,7 @@ async def info() -> dict:
         "node_priority": NODE_PRIORITY,
         "started_at": STARTED_AT,
         "public_host": PUBLIC_HOST,
+        "ice_servers": ICE_SERVERS,
     }
 
 

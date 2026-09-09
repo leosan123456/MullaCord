@@ -165,6 +165,22 @@ function communityControls(closeModal) {
   });
   box.append(labeled("Endereço público", pub), pubSave);
 
+  // STUN/TURN pra voz/tela entre redes diferentes
+  const ice = el("textarea");
+  ice.rows = 3;
+  ice.placeholder = "stun:stun.l.google.com:19302\nturn:meu-turn.exemplo.com:3478 usuario senha";
+  ice.value = c.iceServers || "";
+  box.append(el("p", "field-hint",
+    "Voz e tela vão direto entre os apps. Pra funcionar entre redes diferentes (NAT), um STUN basta na maioria dos casos — já vem embutido. Rede corporativa / operadora móvel precisam de um TURN (relay) próprio: cole aqui, uma linha por servidor."));
+  const iceSave = el("button", "ghost", "Salvar servidores STUN/TURN");
+  iceSave.addEventListener("click", async () => {
+    try {
+      await window.mula.community.update({ iceServers: ice.value });
+      toast("Salvo — reiniciando o nó", "success");
+    } catch (e) { toast(e.message, "error"); }
+  });
+  box.append(labeled("Servidores STUN/TURN (avançado)", ice), iceSave);
+
   // preferências deste dispositivo (bandeja / semente do enxame)
   if (window.mula?.prefs) {
     box.append(el("p", "sub-label", "Este dispositivo"));

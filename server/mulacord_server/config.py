@@ -1,6 +1,7 @@
 """Configuração e caminhos de runtime."""
 from __future__ import annotations
 
+import json
 import os
 import secrets
 import sys
@@ -58,6 +59,26 @@ PUBLIC_HOST = os.environ.get("MULACORD_PUBLIC_HOST", "")
 
 # Porta do responder de descoberta na LAN (UDP). 0 desliga.
 DISCOVERY_PORT = int(os.environ.get("MULACORD_DISCOVERY_PORT", "8788"))
+
+# Servidores ICE (STUN/TURN) para o WebRTC de voz/tela. O cliente pega essa
+# lista em /api/info e usa no lugar dos padrões. Formato: JSON no padrão
+# RTCIceServer, ex.:
+#   MULACORD_ICE_SERVERS='[{"urls":["stun:stun.l.google.com:19302"]},
+#     {"urls":"turn:meu-servidor:3478","username":"u","credential":"p"}]'
+# Vazio => o cliente usa os STUN do Google embutidos.
+try:
+    _ice = json.loads(os.environ.get("MULACORD_ICE_SERVERS", "").strip() or "[]")
+    ICE_SERVERS = _ice if isinstance(_ice, list) else []
+except ValueError:
+    ICE_SERVERS = []
+if not ICE_SERVERS:
+    ICE_SERVERS = [{
+        "urls": [
+            "stun:stun.l.google.com:19302",
+            "stun:stun1.l.google.com:19302",
+            "stun:stun2.l.google.com:19302",
+        ]
+    }]
 
 # Permitir criar contas novas neste servidor.
 OPEN_REGISTRATION = os.environ.get("MULACORD_OPEN_REGISTRATION", "1") != "0"

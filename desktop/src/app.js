@@ -1504,7 +1504,16 @@ async function joinVoiceChannel(channelId) {
 
 async function startVoice(channelId, label) {
   if (state.voice) state.voice.leave();
-  const v = new VoiceSession(state.gw, channelId, state.me.id);
+  // STUN/TURN da comunidade (o nó serve em /api/info); cai nos padrões se falhar
+  let iceServers = state.iceServers || null;
+  try {
+    const info = await state.api.info();
+    if (Array.isArray(info.ice_servers) && info.ice_servers.length) {
+      iceServers = info.ice_servers;
+      state.iceServers = iceServers;
+    }
+  } catch {}
+  const v = new VoiceSession(state.gw, channelId, state.me.id, { iceServers });
   state.voice = v;
   v.on("state", renderVoice);
   try {

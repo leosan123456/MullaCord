@@ -2,17 +2,40 @@
 // O servidor só repassa SDP/ICE (signaling). Mídia vai direto entre os pares.
 import { loadAudio, saveAudio, micConstraints } from "./audio.js";
 
-const ICE_CONFIG = {
-  iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }],
-};
+// STUN: descobre o IP público de cada par (funciona pra maioria dos NATs).
+// Pra NAT simétrico / rede corporativa / operadora móvel é preciso um TURN
+// (relay) — a comunidade adiciona o dela em Perfil → Comunidade, e o nó serve
+// a lista em /api/info (`ice_servers`), que sobrepõe estes padrões.
+const DEFAULT_ICE_SERVERS = [
+  {
+    urls: [
+      "stun:stun.l.google.com:19302",
+      "stun:stun1.l.google.com:19302",
+      "stun:stun2.l.google.com:19302",
+      "stun:stun3.l.google.com:19302",
+      "stun:stun4.l.google.com:19302",
+    ],
+  },
+];
+
+function iceConfig(servers) {
+  const list = Array.isArray(servers) && servers.length ? servers : DEFAULT_ICE_SERVERS;
+  return {
+    iceServers: list,
+    iceCandidatePoolSize: 4,
+    bundlePolicy: "max-bundle",
+    rtcpMuxPolicy: "require",
+  };
+}
 
 export class VoiceSession extends EventTarget {
-  constructor(gateway, channelId, localUserId) {
+  constructor(gateway, channelId, localUserId, opts = {}) {
     super();
     this.gw = gateway;
     this.channelId = channelId;
     this.myId = localUserId;
-    this.peers = new Map(); // userId -> { pc, videoStream, audioEl }
+    this._iceConfig = iceConfig(opts.iceServers);
+    this.peers = new Map(); // userId -> { pc, videoStream, audioEl, _recover }
     this.localStream = null;
     this.screenStream = null;
     this.muted = false;
@@ -59,7 +82,8 @@ export class VoiceSession extends EventTarget {
     this.gw.removeEventListener("rtc_peers", this._peersB);
     this.gw.removeEventListener("rtc_peer_join", this._joinB);
     this.gw.removeEventListener("rtc_peer_leave", this._leaveB);
-    for (const { pc, audioEl } of this.peers.values()) {
+    for (const { pc, audioEl, _recover } of this.peers.values()) {
+      clearTimeout(_recover);
       pc.close();
       audioEl?.remove();
     }
@@ -224,7 +248,7 @@ export class VoiceSession extends EventTarget {
   // -- internals --------------------------------------------------
   _makePeer(userId) {
     if (this.peers.has(userId)) return this.peers.get(userId);
-    const pc = new RTCPeerConnection(ICE_CONFIG);
+    const pc = new RTCPeerConnection(this._iceConfig);
     const audioEl = document.createElement("audio");
     audioEl.autoplay = true;
     audioEl.volume = this.deafened ? 0 : (this.settings.volumes[userId] ?? 1);
@@ -239,6 +263,19 @@ export class VoiceSession extends EventTarget {
 
     pc.onicecandidate = (e) => {
       if (e.candidate) this.gw.rtcSignal(this.channelId, userId, { kind: "candidate", candidate: e.candidate });
+    };
+    // recuperação: se a conexão cai (mudança de rede, pacote perdido, NAT
+    // rebind), tenta um ICE restart em vez de deixar a chamada muda.
+    pc.oniceconnectionstatechange = () => {
+      const st = pc.iceConnectionState;
+      if (st === "failed") {
+        this._recoverPeer(userId, 0);
+      } else if (st === "disconnected") {
+        this._recoverPeer(userId, 4000);   // dá um tempo pra voltar sozinho
+      } else if (st === "connected" || st === "completed") {
+        clearTimeout(entry._recover);
+      }
+      this._emit("state", this.snapshot());
     };
     pc.ontrack = (e) => {
       const track = e.track;
@@ -258,11 +295,29 @@ export class VoiceSession extends EventTarget {
     return entry;
   }
 
-  async _offer(userId) {
+  async _offer(userId, offerOpts) {
     const { pc } = this._makePeer(userId);
-    const offer = await pc.createOffer();
+    const offer = await pc.createOffer(offerOpts);
     await pc.setLocalDescription(offer);
     this.gw.rtcSignal(this.channelId, userId, { kind: "sdp", sdp: pc.localDescription });
+  }
+
+  // Reconecta o par: o lado "polido" (myId > userId) reoferece com iceRestart;
+  // o outro só pede restartIce e espera a nova oferta. `delayMs` deixa o estado
+  // "disconnected" (transitório) se resolver sozinho antes de forçar.
+  _recoverPeer(userId, delayMs) {
+    const entry = this.peers.get(userId);
+    if (!entry) return;
+    clearTimeout(entry._recover);
+    entry._recover = setTimeout(async () => {
+      const pc = entry.pc;
+      const st = pc.iceConnectionState;
+      if (st === "connected" || st === "completed" || st === "closed") return;
+      try {
+        if (this.myId > userId) await this._offer(userId, { iceRestart: true });
+        else if (pc.restartIce) pc.restartIce();
+      } catch (_) { /* tenta de novo no próximo evento */ }
+    }, delayMs);
   }
 
   _renegotiateAll() {
@@ -285,6 +340,7 @@ export class VoiceSession extends EventTarget {
     if (detail.channel_id !== this.channelId) return;
     const entry = this.peers.get(detail.user_id);
     if (entry) {
+      clearTimeout(entry._recover);
       entry.pc.close();
       entry.audioEl?.remove();
       this.peers.delete(detail.user_id);
