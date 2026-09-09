@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.5.2
+
+Atualização automática.
+
+- **Windows**: o app checa a Release do GitHub no launch e a cada 3h; se sair
+  versão nova, baixa em segundo plano (pacote **diferencial** — só os blocos que
+  mudaram) e **instala ao fechar o app**. Um aviso discreto no topo oferece
+  "Reiniciar agora". `electron-updater` + `nsis-web`.
+- **macOS**: por enquanto só **avisa** ("Mulla Cord X.Y.Z disponível → Baixar") e
+  abre o `.dmg` — o auto-update do macOS exige assinatura da Apple.
+- Bandeja: "Verificar atualizações" / "Reiniciar para atualizar".
+- Desligável com `MULACORD_NO_UPDATER=1`; inativo em dev.
+- A verificação de Authenticode do updater está **desligada** enquanto o projeto
+  usa cert self-signed — a integridade fica pelo `sha512` do `latest.yml`.
+
+> A partir desta versão as correções chegam sozinhas. Quem já tem 1.5.1 ou mais
+> antigo precisa instalar a 1.5.2 uma vez.
+
 ## 1.5.1
 
 Descoberta de pessoas na comunidade + entrada mais fácil.

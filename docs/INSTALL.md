@@ -48,6 +48,11 @@ Baixe da página de **[Releases](https://github.com/leosan123456/MullaCord/relea
 O app já traz o servidor embutido — não precisa instalar Python nem nada. Ao abrir,
 ele sobe um **nó** em segundo plano sozinho.
 
+> **Atualizações**: da 1.5.2 em diante o app se atualiza sozinho. No Windows baixa
+> a correção em segundo plano e aplica ao fechar (um aviso no topo oferece
+> "Reiniciar agora"); no macOS avisa e abre o `.dmg` novo. Pra desligar, defina a
+> variável de ambiente `MULACORD_NO_UPDATER=1`.
+
 ## 2. Entrar numa comunidade
 
 No primeiro uso a tela oferece três caminhos:

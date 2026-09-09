@@ -173,6 +173,11 @@ em `desktop/package.json` **e** `server/mulacord_server/__init__.py` → entrada
 `CHANGELOG.md` → commit → `git tag -a vX.Y.Z` → `git push` main **e** a tag → o CI
 builda e publica a Release.
 
+Feito isso, os apps já instalados (1.5.2+) **se atualizam sozinhos**: no Windows o
+`electron-updater` baixa o pacote diferencial da Release e instala ao fechar o app;
+no macOS avisa e abre o `.dmg`. O nó/servidor embutido vem junto no instalador, então
+a versão do servidor acompanha a do app — não há atualização separada.
+
 ## Documentação
 
 - [docs/INSTALL.md](docs/INSTALL.md) — manual de instalação e primeiros passos (novos usuários)
