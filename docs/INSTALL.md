@@ -98,6 +98,14 @@ vocês já podem trocar DM. Não precisa saber o nome de usuário exato.
   modo (sempre ativo / por voz / apertar para falar), volume por pessoa, medidor.
 
 Voz e tela são P2P (direto entre os apps); o nó só faz o encontro. Bom até ~5 pessoas.
+A conexão se recupera sozinha (ICE restart) se a rede oscilar.
+
+> **Entre redes diferentes**: o app usa **STUN** (Google, embutido) pra atravessar
+> a maioria dos NATs. Rede corporativa / operadora móvel (NAT simétrico) precisam
+> de um **TURN** (relay) próprio — suba um [coturn](https://github.com/coturn/coturn)
+> e cole em *Perfil 👤 → Comunidade → Servidores STUN/TURN*, uma linha por servidor:
+> `turn:seu-servidor:3478 usuario senha`. Todos os nós da comunidade passam a
+> anunciar esse TURN.
 
 ## 5. Semente do enxame e amigos de outra rede
 

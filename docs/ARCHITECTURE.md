@@ -214,6 +214,13 @@ grade de miniaturas na mensagem + lightbox com navegação.
 2. Para cada par, **quem tem o maior `user_id` cria a offer** (evita glare).
 3. `rtc_signal` carrega `{kind:"sdp", sdp}` ou `{kind:"candidate", candidate}`.
 4. Tela: adiciona `getDisplayMedia` track às conexões existentes e renegocia.
+5. **ICE servers**: `rtc.js` usa 5 STUN do Google por padrão; o nó pode sobrepor
+   via `/api/info` → `ice_servers` (env `MULACORD_ICE_SERVERS` = JSON RTCIceServer,
+   ou o campo "Servidores STUN/TURN" da comunidade, normalizado em `main.js`).
+   Config: `iceCandidatePoolSize: 4`, `bundlePolicy: "max-bundle"`.
+6. **Recuperação**: `oniceconnectionstatechange` → em `failed` faz ICE restart
+   imediato; em `disconnected` espera 4s e então reinicia. O lado polido
+   (`myId > userId`) reoferece com `iceRestart:true`, o outro chama `restartIce()`.
 
 ## Frontend — marca "Mulla Cord"
 

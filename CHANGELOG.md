@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.5.3
+
+WebRTC (voz/tela) mais robusto + STUN/TURN configurável.
+
+- **STUN**: 5 servidores do Google (era 2), `iceCandidatePoolSize`, `bundlePolicy`.
+- **Auto-recuperação**: se a conexão de voz cai (troca de rede, NAT rebind), o
+  app faz **ICE restart** sozinho em vez de deixar a chamada muda.
+- **ICE servers por comunidade**: o nó serve a lista em `/api/info` (`ice_servers`).
+  Campo em **Perfil → Comunidade → Servidores STUN/TURN** — cole um TURN (relay)
+  próprio pra voz funcionar em NAT simétrico / rede corporativa / operadora móvel.
+  Uma linha por servidor (`turn:host:3478 usuario senha`) ou um array JSON.
+  Env equivalente: `MULACORD_ICE_SERVERS`.
+
 ## 1.5.2
 
 Atualização automática.
