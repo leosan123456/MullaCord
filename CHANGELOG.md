@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.5.4
+
+Voz/tempo real entre nós.
+
+- **Call não conectava entre pessoas de nós diferentes**: presença, "digitando",
+  quem-está-na-call e a sinalização WebRTC são estado só de RAM — **não replicam**.
+  Se cada um ficava no próprio nó, a call nunca casava. Agora `resolveActive()`
+  elege **um coordenador** (prioridade → mais antigo → menor id) e **todos os
+  clientes conversam com ele** (API + gateway). O nó local segue como réplica.
+  `keepOnCoordinator()` re-aponta se a eleição virar (histerese) ou o gw cair.
+- Removido o `migrateToLocalWhenReady` (era ele que espalhava a galera pelos nós).
+- `gateway identify` também faz `sync_now` se a conta ainda não replicou.
+
+> Isso torna o coordenador um ponto único pro tempo real (a call cai se ele
+> sair, e reconecta no novo). O histórico e as contas continuam replicados em
+> todos os nós — nenhum PC é dono dos dados.
+
 ## 1.5.3
 
 WebRTC (voz/tela) mais robusto + STUN/TURN configurável + correções de sync.

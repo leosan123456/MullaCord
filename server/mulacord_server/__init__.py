@@ -1,3 +1,3 @@
 """Servidor Mulla Cord — FastAPI + WebSocket + SQLite."""
 
-__version__ = "1.5.3"
+__version__ = "1.5.4"
