@@ -37,6 +37,14 @@
 - **Descoberta na LAN** — responder UDP em `0.0.0.0:8788` (`discovery.py`); o beacon
   leva `community_id`, `community_name`, `node_priority`, `started_at`, `public_host`.
   O Electron (`dgram`) faz broadcast de `MULACORD_DISCOVER <nonce>`.
+- **Descoberta na WAN (DHT)** — `dht.py`: cliente mínimo da Mainline DHT do
+  BitTorrent (BEP 5, só stdlib). Infohash = `sha1(b"mullacord:v1:" + community_id)`
+  (+ 8 bytes do sha256 do segredo se houver). A cada ~4 min: `get_peers` +
+  `announce_peer(porta 8787)` pegando carona no bootstrap público
+  (`router.bittorrent.com`, `dht.transmissionbt.com`, …). Os IP:portas achados
+  viram peers de replicação. Responde queries básicas pra ficar nas tabelas
+  alheias. Só *acha* o peer — a 8787 ainda precisa estar aberta (UPnP/forward)
+  num dos lados. Desliga com `MULACORD_DHT=0`.
 - **Primeiro uso** (`#auth-welcome`): criar comunidade / entrar numa achada na LAN /
   colar convite `mula://join/<base64url(json)>` (`{id,name,secret,addrs}`).
 - **Sessão** — salva por comunidade em `localStorage['mula.session.<id>']`

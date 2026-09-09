@@ -119,13 +119,25 @@ Um PC com essas duas opções ligadas vira a "semente" estável da comunidade.
 
 **Amigos de outra rede** — Perfil 👤 → *Comunidade*:
 
-1. O app tenta abrir a porta 8787 no roteador sozinho (**UPnP**). Se der certo, o
-   **Convite** já sai com seu endereço público.
-2. Não funcionou? Redirecione **8787/TCP** para o IP local deste PC (port
-   forwarding) e preencha **Endereço público** = `SEU_IP_PUBLICO:8787`. Alternativa:
-   os dois na mesma VPN (Tailscale, ZeroTier).
-3. Copie o **Convite** (`mula://join/…`) e mande. Quem recebe cola em *Entrar com
-   um convite*.
+O nó já **anuncia a comunidade na DHT pública do BitTorrent** (toggle *"Achar
+membros pela internet (DHT)"*, ligado por padrão) — nós da mesma comunidade se
+acham sozinhos pela internet, sem servidor e sem trocar convite, em ~1 min.
+
+**Mas** a DHT só *encontra* o outro PC; pra conexão fechar, a porta **8787/TCP**
+precisa estar alcançável em **pelo menos um** dos PCs:
+
+1. O app tenta abrir a 8787 no roteador sozinho (**UPnP**). Se der certo, pronto —
+   e o **Convite** já sai com seu endereço público.
+2. UPnP não funcionou? Redirecione **8787/TCP** pro IP local deste PC (port
+   forwarding no roteador) e preencha **Endereço público** = `SEU_IP_PUBLICO:8787`.
+   Alternativa sem mexer no roteador: os dois na mesma VPN (Tailscale, ZeroTier) —
+   aí vira "mesma rede".
+3. Sempre dá pra mandar o **Convite** (`mula://join/…`) na mão — quem recebe cola
+   em *Entrar com um convite*.
+
+> Um PC "semente" (Manter no ar + Iniciar com o Windows + porta aberta) resolve
+> pra comunidade toda: ele vira o coordenador sempre-no-ar e todo mundo conecta
+> nele.
 
 > **Firewall**: na 1ª vez o Windows pergunta — marque **Redes privadas** e
 > **Permitir acesso**. Se você bloqueou sem querer, o app mostra um banner

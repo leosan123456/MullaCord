@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.5.5
+
+Descoberta pela internet (DHT) + tela grande + sons.
+
+### WAN — achar membros noutra rede, sem servidor
+- **DHT do BitTorrent** (`dht.py`, BEP 5): cada comunidade vira um infohash
+  (`sha1("mullacord:v1:" + community_id)`); o nó anuncia a porta 8787 e busca
+  peers a cada ~4 min pegando carona na DHT global (bootstrap público já
+  existente). Os IPs:portas viram peers de replicação.
+- Testado: 2 nós com o mesmo `community_id` se acharam pela DHT pública em ~45s.
+- Toggle **Perfil → Comunidade → "Achar membros pela internet (DHT)"** (padrão
+  ligado). Env `MULACORD_DHT=0` desliga.
+- **Limite**: a DHT *acha* o peer; a porta 8787 ainda precisa estar aberta
+  (UPnP ou redirecionamento) num dos PCs pra conexão fechar. Sem relay/hole-punch.
+
+### Tela compartilhada
+- Modo apresentador: a tela ocupa `clamp(280px, 58vh, 760px)` e `object-fit:
+  contain` (não corta). Antes era uma célula de 220px cortada.
+- Botão de tela cheia + toggle preencher/ajustar; duplo-clique = tela cheia.
+
+### Sons de conexão
+- WebAudio sintetizado (sem arquivos): entrar/sair de call, alguém entrou/saiu,
+  mutar, ensurdecer, tela on/off, gateway caiu/voltou.
+- Toggle em Perfil → Aparência.
+
 ## 1.5.4
 
 Voz/tempo real entre nós.
